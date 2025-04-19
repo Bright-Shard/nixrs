@@ -81,10 +81,38 @@ with lib.types;
       };
     };
 
-    compileOptions = mkOption {
+    toolchain-options = mkOption {
+      description = "Options for the Rust toolchain to build this crate with.";
+      type = submodule {
+        options = {
+          channel = mkOption {
+            description = "The Rust channel to install this toolchain from.";
+            type = str;
+            default = "stable";
+          };
+          targets = mkOption {
+            description = "Target triples to install in the Rust toolchain.";
+            type = listOf str;
+            # TODO set default to host target triple
+          };
+          components = mkOption {
+            description = "Components to install in the Rust toolchain.";
+            type = listOf str;
+            # TODO install default components
+          };
+        };
+      };
+    };
+
+    compiler-options = mkOption {
       description = "Extra options to pass to the Rust compiler.";
       type = submodule {
         options = {
+          rustc-path = mkOption {
+            description = "The path to the rustc binary.";
+            type = str;
+            default = "${pkgs.rustc}/bin/rustc";
+          };
           target-triple = mkOption {
             description = "The target triple to compile this crate for.";
             type = str;

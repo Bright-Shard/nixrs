@@ -1,7 +1,5 @@
 { crateRoot, ... }:
 
-with builtins;
-
 let
   pkgs = import <nixpkgs> { };
   lib = pkgs.lib;
@@ -18,7 +16,7 @@ in
 (import ./buildCrate.nix {
   crateName = config.name;
   crateType = "bin"; # TODO
-  rustcPath = "${pkgs.rustc}/bin/rustc"; # TODO allow custom rustc versions
+  rustcPath = config.rustc-path;
   linkerPath = "${pkgs.gcc}/bin/cc"; # TODO allow custom linkers
   edition = config.edition;
   deps = [ ]; # TODO support dependencies

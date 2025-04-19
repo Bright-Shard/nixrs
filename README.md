@@ -35,6 +35,22 @@ nixrs is largely intended for large programs written in Rust that need more flex
 
 
 
+# Installation
+
+Nixrs must be installed with Nix. To install the latest version, add this to your list of packages (in `configuration.nix`, `shell.nix`, or whatever else):
+
+```nix
+(pkgs.callPackage (pkgs.fetchFromGitHub {
+	owner = "bright-shard";
+	repo = "nixrs";
+	rev = "master";
+}) { })
+```
+
+Nix will error about a hash mismatch. Copy the hash from the error message, then add `hash = "<paste hash here>";` to the `fetchFromGitHub` arguments. If you would like to install a specific version of nixrs, change `rev` to that version.
+
+
+
 # Usage
 
 nixrs is largely inspired by Cargo, so nixrs projects are structured similarly to Cargo projects. The largest two differences are that nixrs uses `crate.nix` (instead of `Cargo.toml`) for configuration, and is written in Nix instead of TOML. If you aren't familiar with Nix, don't worry - 90% of what you need is Nix tables, which are similar to Python dictionaries or JSON.

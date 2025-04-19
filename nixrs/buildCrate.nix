@@ -1,4 +1,5 @@
-# Wraps around rustc to provide a simple API to Nix for compiling Rust crates.
+# Wraps around rustc to provide a simple API to Nix for compiling a single Rust
+# crate.
 
 with builtins;
 
@@ -8,7 +9,7 @@ with builtins;
 # - rustcPath: path #path to rustc
 # - linkerPath: path #path to cc
 # - edition: int<one valid rust edition> #rust edition to compile with
-# - deps: [path] #paths to any dependency crates or C libraries
+# - deps: [path] #paths to any dependency crates or C libraries to link with
 # - target: str #target triple to compile for
 # - src: path #nix store path to the crate's source code
 args:
