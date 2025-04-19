@@ -43,7 +43,7 @@ Nixrs must be installed with Nix. To install the latest version, add this to you
 (pkgs.callPackage (pkgs.fetchFromGitHub {
 	owner = "bright-shard";
 	repo = "nixrs";
-	rev = "master";
+	rev = "main";
 }) { })
 ```
 
