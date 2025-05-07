@@ -1,34 +1,50 @@
-# buildCrate.nix improvements
+# basic planning
 
-- Support building a test harness with --test
-- Investigate allowing/denying lints with -A, -W, -D
-- Support codegen options with -C (-C help to see options)
-- Investigate emitting a different binary type with --emit
-- Investigate allowing custom arguments to rustc
-- Allow specifying custom linkers (e.g. mold)
-
-
-
-# workspace features
-
-- Workspace presets: A way to specify crates and compilation features to build together
-	- Specify crates in a preset
-	- Specify features for crates
-	- Override dependencies
-	- Specify target to build for, optimisation level, debug assertions, etc
-	- Preset for rust-analyzer?
-
-
-
-# cli features
-
-- Currently the CLI stops looking for crate.nix files on the first one it finds. It should keep searching to look for a workspace outside of the crate.
-- Allow custom subcommands
-
-
-
-# misc
-
-- rust-analyzer integration
+-[x] Copy Rust source code to Nix store
+-[x] Compile Rust source code
+-[x] Make sure compilation files aren't gc'd
+-[ ] Command for running binary crates
+-[ ] Command for building & running a test harness
+-[ ] Code dependencies
+	- There will be multiple types of dependencies nixrs needs to handle.
+	-[ ] Rust dependencies
+		- Need to build dependency tree, then go through and make a flat list of dependencies with unified features and versions
+		-[ ] Need to allow downloading from common sources:
+			-[ ] crates.io @ semantic version
+			-[ ] GitHub @ specific tag or commit or branch with hash
+			-[ ] Non-GitHub git @ specific tag or commit or branch with hash
+		-[ ] Determine if dependency is based in Cargo or nixrs
+			-[ ] For nixrs dependencies, recursively add sub-dependencies to dependency tree
+				-[ ] Cyclical dependency detection: If current crate is already in the dependency tree, in one straight branch to the root of the tree, error
+		-[ ] Flatten dependency tree into dependency list
+			-[ ] Start at top of tree
+			-[ ] For each branch, descend to bottom of branch and:
+				-[ ] If crate is already in dependency list, and its version can be merged with the existing entry:
+					-[ ] Merge crate version
+					-[ ] Merge crate features
+				-[ ] Otherwise, add crate to dependency list
+	-[ ] Foreign link dependencies
+		-[ ] Need to allow downloading dynamic/static libraries
+		-[ ] Need to allow linking to those libraries
+	-[ ] Make sure build files for dependencies aren't gc'd
+-[ ] Binary dependencies
+	-[ ] Should integrate with direnv/shell.nix to allow specifying binary dependencies needed for developing in the workspace
+	-[ ] Should make those dependencies available to build.rs/postbuild.rs
+-[ ] Compilation options
+	-[ ] Custom linkers (e.g. mold)
+	-[ ] Support codegen options (rustc -C help to see options)
+	-[ ] Minimal binary size options
+	-[ ] Investigate allowing/denying lints with -A, -W, -D
+	-[ ] Investigate emitting a different binary type with --emit
+	-[ ] Investigate allowing direct custom arguments to rustc
+-[ ] Workspace presets: A way to specify crates and compilation features to build together
+	-[ ] Specify crates in a preset
+	-[ ] Specify features for crates
+	-[ ] Override dependencies
+	-[ ] Specify target to build for, optimisation level, debug assertions, etc
+	-[ ] Preset for rust-analyzer?
+-[ ] Currently the CLI stops looking for crate.nix files on the first one it finds. It should keep searching to look for a workspace outside of the crate.
+-[ ] Custom CLI subcommands
+-[ ] rust-analyzer integration
 	- https://rust-analyzer.github.io/book/configuration.html
-- Cargo integration: Generate a Cargo.toml for a crate, allowing workspaces to use nixrs but one (or more) crates from that workspace to be published on crates.io
+-[ ] Cargo integration: Generate a Cargo.toml for a crate, allowing workspaces to use nixrs but one (or more) crates from that workspace to be published on crates.io

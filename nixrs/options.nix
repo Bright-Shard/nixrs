@@ -1,6 +1,11 @@
-{ lib, ... }:
+{ lib, pkgs, ... }:
+
 with lib;
 with lib.types;
+
+let
+  dependency = listOf oneOf [ pkg ];
+in
 {
   options = {
     name = mkOption {
@@ -36,6 +41,7 @@ with lib.types;
 
     meta = mkOption {
       description = "Crate metadata.";
+      default = { };
       type = submodule {
         options = {
           authors = mkOption {
@@ -72,17 +78,25 @@ with lib.types;
     license = mkOption { };
     license-file = mkOption { };
 
+    build-dependencies = mkOption {
+      description = "Any programs or libraries that are only needed while compiling this crate.";
+      default = [ ];
+      type = dependency;
+    };
+    dev-dependencies = mkOption {
+      description = "Any programs or libraries that are only needed while compiling, testing, or benchmarking this crate.";
+      default = [ ];
+      type = dependency;
+    };
     dependencies = mkOption {
-      description = "Any code you need to build or run this crate.";
-      type = submodule {
-        options = {
-          bins = listOf oneOf [ pkg ];
-        };
-      };
+      description = "Any programs or libraries that this crate needs to run.";
+      default = [ ];
+      type = dependency;
     };
 
     toolchain-options = mkOption {
       description = "Options for the Rust toolchain to build this crate with.";
+      default = { };
       type = submodule {
         options = {
           channel = mkOption {
@@ -106,12 +120,13 @@ with lib.types;
 
     compiler-options = mkOption {
       description = "Extra options to pass to the Rust compiler.";
+      default = { };
       type = submodule {
         options = {
           rustc-path = mkOption {
             description = "The path to the rustc binary.";
             type = str;
-            default = "${pkgs.rustc}/bin/rustc";
+            default = "${pkgs.rustc}/bin/rustc"; # TODO use toolchain version
           };
           target-triple = mkOption {
             description = "The target triple to compile this crate for.";
@@ -147,6 +162,7 @@ with lib.types;
 
     rust-analyzer = mkOption {
       description = "rust-analyzer configuration.";
+      default = { };
       type = submodule {
         options = {
           enable = mkOption {

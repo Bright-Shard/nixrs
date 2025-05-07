@@ -1,0 +1,68 @@
+#!/bin/sh
+
+ROOT=$(dirname $0)/..
+HELP="\
+nixrs
+An alternative build system for Rust.
+
+Usage
+=====
+
+help, h		Show this help menu.
+build, b		Build the current crate.
+run, r		Run the current crate.
+check, c		View compiler warnings/errors when building the current crate.
+clean			Remove build files, then garbage-collect the nix store.
+"
+
+cmd=$(echo "$1" | awk '{print tolower($0)}')
+crateRoot=$(realpath .)
+
+findCrateRoot() {
+	while [ $crateRoot != "/" ]; do
+		if [ $(ls $crateRoot | grep "crate.nix") ]; then
+			break
+		fi
+		crateRoot=$(dirname $crateRoot)
+	done
+
+	if [ $crateRoot == "/" ]; then
+			echo "nixrs error: No \`crate.nix\` found in this folder or any of its parent folders. Is this a nixrs project?"
+	fi
+}
+buildCrate() {
+	nix-build "$ROOT/nixrs/default.nix" --arg crateRoot $crateRoot -o $crateRoot/target
+
+	if [ $? != 0 ]; then
+		echo "nixrs error: Crate failed to compile."
+		exit 1
+	fi
+}
+
+case "$cmd" in
+	"run" | "r")
+		findCrateRoot
+		cratePath=$(buildCrate)
+		echo "TODO: Run crate after building"
+	;;
+	"build" | "b")
+		findCrateRoot
+		buildCrate
+	;;
+	"check" | "c")
+		findCrateRoot
+		echo "TODO: Find crate derivation and list logs"
+	;;
+	"clean")
+		rm -rf $crateRoot/target
+		nix-store --gc
+	;;
+	"help" | "h" | "")
+		echo -e "$HELP"
+	;;
+	*)
+		echo "nixrs warning: Unknown command \`$cmd\`. Showing help menu."
+		echo ""
+		echo -e "$HELP"
+	;;
+esac
