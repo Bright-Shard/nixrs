@@ -4,4 +4,6 @@
 
 pkgs.mkShell {
   name = "nixrs-dev-shell";
+
+  packages = with pkgs; [ git ];
 }

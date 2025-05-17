@@ -5,7 +5,7 @@
     version = "0.0.0";
     edition = 2024;
 
-    dependencies = [ ];
+    dependencies = { };
 
     meta.authors = [ "" ];
   };

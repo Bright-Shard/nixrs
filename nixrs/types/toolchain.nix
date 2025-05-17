@@ -1,8 +1,8 @@
 # A Rust toolchain to install.
 
-with builtins;
+{ mkType, elem, ... }:
 
-import ./mkType {
+mkType {
   typeName = "toolchain";
   schema = {
     channel =

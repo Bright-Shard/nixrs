@@ -1,4 +1,6 @@
-import ./mkType {
+{ mkType, ... }:
+
+mkType {
   typeName = "crate";
   schema = {
     name = "string"; # Name of crate

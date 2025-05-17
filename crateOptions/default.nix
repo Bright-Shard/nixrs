@@ -1,11 +1,18 @@
-{ lib, pkgs, ... }:
-
-with lib;
-with lib.types;
+{
+  lib,
+  pkgs,
+  nixrs,
+  ...
+}:
 
 let
-  dependency = listOf oneOf [ pkg ];
+  inherit (lib) mkOption;
+  types = import ./optionTypes.nix {
+    inherit lib;
+    inherit nixrs;
+  };
 in
+with types;
 {
   options = {
     name = mkOption {
@@ -18,9 +25,8 @@ in
       default = "";
     };
     version = mkOption {
-      description = "The crate's version. This should follow semantic versioning.";
-      # TODO validate as semantic version
-      type = str;
+      description = "The crate's version.";
+      type = semanticVersion;
     };
 
     edition = mkOption {
@@ -34,8 +40,7 @@ in
     };
     rust-version = mkOption {
       description = "The crate's MSRV (Minimum Supported Rust Version).";
-      # TODO validate as semantic version
-      type = nullOr str;
+      type = nullOr semanticVersion;
       default = null;
     };
 
@@ -80,20 +85,31 @@ in
 
     build-dependencies = mkOption {
       description = "Any programs or libraries that are only needed while compiling this crate.";
-      default = [ ];
-      type = dependency;
+      default = { };
+      type = attrsOf (oneOf [
+        crateVersion
+        buildDependencyConfig
+      ]);
     };
     dev-dependencies = mkOption {
       description = "Any programs or libraries that are only needed while compiling, testing, or benchmarking this crate.";
-      default = [ ];
-      type = dependency;
+      default = { };
+      type = attrsOf (oneOf [
+        crateVersion
+        buildDependencyConfig
+        dependencyConfig
+      ]);
     };
     dependencies = mkOption {
       description = "Any programs or libraries that this crate needs to run.";
-      default = [ ];
-      type = dependency;
+      default = { };
+      type = attrsOf (oneOf [
+        crateVersion
+        dependencyConfig
+      ]);
     };
 
+    # TODO actually download toolchain
     toolchain-options = mkOption {
       description = "Options for the Rust toolchain to build this crate with.";
       default = { };
@@ -109,10 +125,14 @@ in
             type = listOf str;
             # TODO set default to host target triple
           };
+          profile = mkOption {
+            description = "The toolchain profile to install.";
+            type = str;
+            default = "default";
+          };
           components = mkOption {
             description = "Components to install in the Rust toolchain.";
             type = listOf str;
-            # TODO install default components
           };
         };
       };
@@ -126,7 +146,7 @@ in
           rustc-path = mkOption {
             description = "The path to the rustc binary.";
             type = str;
-            default = "${pkgs.rustc}/bin/rustc"; # TODO use toolchain version
+            default = "${pkgs.rustc}/bin/rustc"; # TODO use toolchain's rustc
           };
           target-triple = mkOption {
             description = "The target triple to compile this crate for.";

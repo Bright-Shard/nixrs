@@ -1,7 +1,7 @@
 # Wraps around rustc to provide a simple API to Nix for compiling a single Rust
 # crate.
 
-with builtins;
+{ concatStringsSep, ... }:
 
 # Args:
 # - crateName: str #name of crate to compile
@@ -17,6 +17,7 @@ args:
 
 let
   rustcBaseArgs = "${args.src} --crate-name ${args.crateName} --crate-type ${args.crateType} --edition ${toString args.edition} -C linker=${args.linkerPath} --out-dir $out";
+
   rustcArgs = concatStringsSep " -L " ([ rustcBaseArgs ] ++ args.links);
 in
 derivation {

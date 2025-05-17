@@ -11,8 +11,9 @@
 		- Need to build dependency tree, then go through and make a flat list of dependencies with unified features and versions
 		-[ ] Need to allow downloading from common sources:
 			-[ ] crates.io @ semantic version
-			-[ ] GitHub @ specific tag or commit or branch with hash
-			-[ ] Non-GitHub git @ specific tag or commit or branch with hash
+			-[x] ~~GitHub @ specific tag or commit or branch with hash~~ use `nixpkgs.fetchFromGitHub`
+			-[x] ~~Non-GitHub git @ specific tag or commit or branch with hash~~ use `builtins.fetchGit`
+			-[x] Allow arbitrary dependencies in the Nix store
 		-[ ] Determine if dependency is based in Cargo or nixrs
 			-[ ] For nixrs dependencies, recursively add sub-dependencies to dependency tree
 				-[ ] Cyclical dependency detection: If current crate is already in the dependency tree, in one straight branch to the root of the tree, error
@@ -23,9 +24,12 @@
 					-[ ] Merge crate version
 					-[ ] Merge crate features
 				-[ ] Otherwise, add crate to dependency list
-	-[ ] Foreign link dependencies
-		-[ ] Need to allow downloading dynamic/static libraries
+	-[ ] Link dependencies
+		-[x] ~~Need to allow downloading dynamic/static libraries~~ will use nixpkgs' built-in fetchers
 		-[ ] Need to allow linking to those libraries
+		-[ ] Investiage why Cargo has link restrictions & see if nixrs needs them too
+			- Cargo doesn't allow multiple crates to link to the same static library
+			- https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key
 	-[ ] Make sure build files for dependencies aren't gc'd
 -[ ] Binary dependencies
 	-[ ] Should integrate with direnv/shell.nix to allow specifying binary dependencies needed for developing in the workspace
@@ -42,9 +46,16 @@
 	-[ ] Specify features for crates
 	-[ ] Override dependencies
 	-[ ] Specify target to build for, optimisation level, debug assertions, etc
-	-[ ] Preset for rust-analyzer?
+	-[ ] Lint options
 -[ ] Currently the CLI stops looking for crate.nix files on the first one it finds. It should keep searching to look for a workspace outside of the crate.
+	-[ ] If it finds a workspace, need to load settings from it
+	-[ ] If it finds a workspace, need to use workspace target dir instead of crate target dir
 -[ ] Custom CLI subcommands
 -[ ] rust-analyzer integration
 	- https://rust-analyzer.github.io/book/configuration.html
+	-[ ] Allow specifying a certain preset for rust-analyzer to use
 -[ ] Cargo integration: Generate a Cargo.toml for a crate, allowing workspaces to use nixrs but one (or more) crates from that workspace to be published on crates.io
+-[ ] Targets
+	- Rename to "outputs" so they're not confused with target triples?
+	- https://doc.rust-lang.org/cargo/reference/cargo-targets.html
+-[ ] Make sure help menu prints in 2 columns

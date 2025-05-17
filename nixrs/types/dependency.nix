@@ -1,17 +1,17 @@
 # A dependency for a crate.
 
-with builtins;
+{ mkType, elem, ... }:
 
-import ./mkType {
+mkType {
   typeName = "dependency";
   schema = {
-    # Where the dependency comes from - a local file, crates.io, GitHub, etc.
+    # Where the dependency comes from - something in the Nix store, or an
+    # online crates registry
     source =
       source:
       elem source [
-        "cratesio"
-        "local"
-        "git"
+        "registry"
+        "store"
       ];
     # The path to the crate. The meaning of this is context-dependent:
     # - For local crates, this is the path to the crate's source code
@@ -24,7 +24,9 @@ import ./mkType {
     kind =
       kind:
       elem kind [
+        "binary"
         "crate"
+        "link"
         "foreign"
       ];
   };

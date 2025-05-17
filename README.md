@@ -1,36 +1,36 @@
-# nixrs - an alternative build system for Rust
+# nixrs - fearless dependencies for Rust
 
-nixrs is a build system for Rust that uses the [Nix programming language](https://nixos.org). It is a direct replacement for Cargo - for example crates are declared in a `crate.nix` file, not `Cargo.toml`.
+nixrs is a build system for Rust that uses the [Nix programming language](https://nixos.org). It is a direct replacement for Cargo - for example, crates are declared in a `crate.nix` file, not `Cargo.toml` - but can still integrate with Cargo projects.
+
+The goal of nixrs is to bring Nix's reproducable builds to Rust. All dependencies - from crates on crates.io, to static C libraries a Rust project links with, to CLI tools your project needs for development - can be managed with nixrs. Thus, other
 
 > **DISCLAIMER:**
 >
-> nixrs is *heavily* work-in-progress. The below README is the end goal for the project, but it doesn't have all of these features yet.
+> nixrs is *heavily* work-in-progress. The below README is the end goal for the project, but currently only a fraction of those features are actually implemented.
 >
-> The current status is basically a proof-of-concept project that allows setting options in `crate.nix` and can compile a Rust project with rustc. Not all options in `crate.nix` are currently supported.
->
-> You can see examples where I test nixrs in the `examples/` folder.
+> You can see examples where I test nixrs in the `examples/` folder, and the project's massive todo list in [`planning.md`](planning.md).
 
 
 
 # Cargo compatibility
 
-nixrs crates can depend on normal Cargo projects, and any crate on crates.io can be added as a dependency just like Cargo. nixrs also has a `cargo-compatibility` option that, when enabled, will cause nixrs to generate a `Cargo.toml` file for your crate.
+nixrs crates can depend on normal Cargo projects, so any existing crate on crates.io can be added as a dependency just like with Cargo. nixrs also has a `cargo-compatibility` option that, when enabled, will cause nixrs to generate a `Cargo.toml` file for your crate.
 
-However, nixrs has some features Cargo does not (these additional features are discussed below). Obviously, these features cannot be translated into `Cargo.toml` - so when `cargo-compatibility` is enabled, you'll only be able to use nixrs features that also exist in Cargo. nixrs will emit errors if you attempt to use any other features.
+However, nixrs has some features Cargo does not (these additional features are discussed below). Obviously, these features cannot be translated into `Cargo.toml` - so when `cargo-compatibility` is enabled, you won't be able to use these nixrs features, and nixrs will error if you attempt to do so.
 
 
 
 # When/Why should I use this?
 
-nixrs isn't always compatible with Cargo, so some nixrs crates can't be published on crates.io. Therefore, nixrs is probably a bad idea for
+nixrs isn't always compatible with Cargo, so some nixrs crates can't be published on crates.io. Therefore, nixrs is probably a bad idea for libraries.
 
 nixrs is largely intended for large programs written in Rust that need more flexibility than Cargo can provide. nixrs offers all of the same features Cargo offers, and adds the following:
 
 - **Dependencies Beyond crates.io**: Because nixrs is based on Nix, you can specify any code as a dependency - regardless of how it's hosted (crates.io, GitHub, a zip file, etc.) or what language it's written in.
 - **Development Dependencies**: Many large-scale projects require third-party linters, build tools, or runtimes for development. For example, my operating system [bs](https://github.com/bright-shard/bs) requires QEMU to test the OS during development. Other large scale projects may even have internal CLIs dedicated for their specific codebase. nixrs allows you to specify any binary as a dependency, so every developer has the tooling they need OOTB.
-- **Toolchain Management**: Manage your Rust version, edition, targets, and components from directly within nixrs. No need to manage Cargo and Rustup separately.
-- **Reliable Builds**: nixrs makes the same reproducable build guarantees that you'd expect from any Nix package. Dependencies that build on one computer will build on all computers.
-- **rust-analyzer Support**: You can configure rust-analyzer from directly within nixrs. Those settings will load regardless of what IDE you - or your collaborators - use.
+- **Toolchain Management**: Manage your Rust version, edition, targets, and components from directly within nixrs. No need to manage Cargo and Rustup separately. This ensures all maintainers use the same Rust version, without even having to think about installing it.
+- **Reliable Builds**: nixrs makes the same reproducable build guarantees that you'd expect from any Nix package. Dependencies that build on one computer will build on all computers (unless, of course, a crate explicitly doesn't support certain OSes/architectures).
+- **rust-analyzer Support**: You can configure rust-analyzer from directly within nixrs. Those settings will load regardless of what IDE you and your collaborators use.
 - **...and more**: post-build scripts, direnv integration, built-in support for linker scripts, and many other features that'd take too long to list here.
 
 
@@ -75,6 +75,14 @@ A barebones `crate.nix` looks like this:
 }
 ```
 
-As you can see, `crate.nix` strongly resembles `Cargo.toml`. This is intentional.
+As you can see, `crate.nix` strongly resembles `Cargo.toml`. This is intentional - Cargo is already really awesome, so much of nixrs is inspired by it. Also like Cargo, you can build your crate with `nixrs build` and run it with `nixrs run`.
 
-Once you have a crate setup, you can build with `nixrs build` and run it with `nixrs run` - also like Cargo.
+
+
+# Repo Layout
+
+nixrs is a fairly large project, so it's split into 3 main folders:
+
+- [`nixrs`](nixrs): This is the core nixrs module that provides functions for compiling a Rust crate, handling dependencies, downloading the correct toolchain, etc.
+- [`crateOptions`](crateOptions): This provides all of the options for `crate.nix` to set. It's essentially the higher-level nixrs API.
+- [`buildCrate`](buildCrate): This is the Nix code called by the nixrs CLI, which bridges `crateOptions` to `nixrs` to actually compile a Rust crate.

@@ -1,6 +1,5 @@
 #!/bin/sh
 
-ROOT=$(dirname $0)/..
 HELP="\
 nixrs
 An alternative build system for Rust.
@@ -8,15 +7,47 @@ An alternative build system for Rust.
 Usage
 =====
 
-help, h		Show this help menu.
-build, b		Build the current crate.
-run, r		Run the current crate.
-check, c		View compiler warnings/errors when building the current crate.
-clean			Remove build files, then garbage-collect the nix store.
+help, h			Show this help menu.
+build, b			Build the current crate.
+run, r			Run the current crate.
+check, c			View compiler warnings/errors when building the current crate.
+clean				Remove build files, then garbage-collect the nix store.
+index-sync		Sync crate repository indexes, so nixrs' crate list is up to date
 "
+
+ROOT=$(dirname $0)/..
+DATA_DIR=/home/${USER}/.local/share/nixrs
+CRATES_IO_INDEX=${DATA_DIR}/crates.io-index
+
+export NIX_PATH=$NIX_PATH:nixrs=${DATA_DIR}
+
+if [ ! -d $DATA_DIR ]; then
+	if [ -e $DATA_DIR ]; then
+		echo "nixrs error: nixrs needs to use the folder '${DATA_DIR}' to store its files, but this path is already taken by another file."
+		exit 1
+	fi
+
+	mkdir -p $DATA_DIR
+fi
+
 
 cmd=$(echo "$1" | awk '{print tolower($0)}')
 crateRoot=$(realpath .)
+
+manageCratesioIndex() {
+	# TODO: Don't run this every time nixrs is called. It's a waste of time.
+	# It's also painfully slow if the machine is offline.
+	if [ ! -d $CRATES_IO_INDEX ]; then
+		echo "Downloading crates.io index..."
+		git clone --depth 1 https://github.com/rust-lang/crates.io-index $CRATES_IO_INDEX
+	else
+		echo "Updating crates.io index..."
+		cd $CRATES_IO_INDEX
+		git pull --depth 1 --rebase --quiet
+		cd - > /dev/null
+	fi
+	echo "Finished syncing crates.io index"
+}
 
 findCrateRoot() {
 	while [ $crateRoot != "/" ]; do
@@ -28,14 +59,18 @@ findCrateRoot() {
 
 	if [ $crateRoot == "/" ]; then
 			echo "nixrs error: No \`crate.nix\` found in this folder or any of its parent folders. Is this a nixrs project?"
+			exit 2
 	fi
 }
+
 buildCrate() {
-	nix-build "$ROOT/nixrs/default.nix" --arg crateRoot $crateRoot -o $crateRoot/target
+	manageCratesioIndex
+
+	nix-build "$ROOT/buildCrate" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target
 
 	if [ $? != 0 ]; then
 		echo "nixrs error: Crate failed to compile."
-		exit 1
+		exit 3
 	fi
 }
 
@@ -59,6 +94,10 @@ case "$cmd" in
 	;;
 	"help" | "h" | "")
 		echo -e "$HELP"
+	;;
+	"index-sync")
+		# TODO non-crates.io repos
+		manageCratesioIndex
 	;;
 	*)
 		echo "nixrs warning: Unknown command \`$cmd\`. Showing help menu."
