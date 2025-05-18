@@ -66,7 +66,7 @@ findCrateRoot() {
 buildCrate() {
 	manageCratesioIndex
 
-	nix-build "$ROOT/buildCrate" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target
+	nix-build "$ROOT/buildCrate.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
 
 	if [ $? != 0 ]; then
 		echo "nixrs error: Crate failed to compile."

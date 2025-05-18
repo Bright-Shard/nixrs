@@ -21,12 +21,14 @@ mkType {
     min = val: semver.isType val;
     max = val: semver.isType val;
   };
-  addFields = self: {
+  addFields = self: rec {
+    regex = "^([=<>\\^~]|<=|>=)?(0|[1-9][0-9]*|\\*)\\.?(0|[1-9][0-9]*|\\*)?\\.?(0|[1-9][0-9]*|\\*)?$";
+
     fromString =
       val:
 
       let
-        parsed = match "^([=<>\\^~]|<=|>=)?(0|[1-9][0-9]*|\\*)\\.?(0|[1-9][0-9]*|\\*)?\\.?(0|[1-9][0-9]*|\\*)?$" val;
+        parsed = match regex val;
         requirement = elemAt parsed 0;
         rawMajor = elemAt parsed 1;
         rawMinor = elemAt parsed 2;
@@ -91,7 +93,7 @@ mkType {
                   max = semver.build {
                     major = 0;
                     minor = 0;
-                    patch = (toInt patch) + 1;
+                    patch = patch + 1;
                   };
                 }
             else
@@ -100,7 +102,7 @@ mkType {
                 min = specifiedVersion;
                 max = semver.build {
                   major = 0;
-                  minor = (toInt minor) + 1;
+                  minor = minor + 1;
                   patch = 0;
                 };
               }
@@ -109,7 +111,7 @@ mkType {
             self.build {
               min = specifiedVersion;
               max = semver.build {
-                major = (toInt major) + 1;
+                major = major + 1;
                 minor = 0;
                 patch = 0;
               };

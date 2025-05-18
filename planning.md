@@ -10,7 +10,7 @@
 	-[ ] Rust dependencies
 		- Need to build dependency tree, then go through and make a flat list of dependencies with unified features and versions
 		-[ ] Need to allow downloading from common sources:
-			-[ ] crates.io @ semantic version
+			-[ ] crates.io @ Rust version requirement
 			-[x] ~~GitHub @ specific tag or commit or branch with hash~~ use `nixpkgs.fetchFromGitHub`
 			-[x] ~~Non-GitHub git @ specific tag or commit or branch with hash~~ use `builtins.fetchGit`
 			-[x] Allow arbitrary dependencies in the Nix store

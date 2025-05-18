@@ -5,18 +5,13 @@
 
 let
   inherit (builtins) listToAttrs attrNames readDir;
-in
-let
-  nixrs = builtins // {
+  nixrs = builtins // rec {
+    # Attribute set
     inherit pkgs;
+    # Attribute set
     inherit registries;
 
-    lib = pkgs.lib;
-
-    mkType = import ./mkType.nix nixrs;
-    compile = import ./compile.nix nixrs;
-    dependenciesToLinks = import ./dependencies.nix nixrs;
-
+    # Attribute set
     types = listToAttrs (
       map (
         file:
@@ -29,6 +24,25 @@ let
         }
       ) (attrNames (readDir ./types))
     );
+
+    # Attribute set
+    lib = pkgs.lib;
+
+    # Function
+    mkType = import ./mkType.nix nixrs;
+    # Function
+    compile = import ./compile.nix nixrs;
+    # Function
+    fetchCrate = import ./fetchCrate.nix nixrs;
+    # Function
+    dependenciesToLinks = import ./dependencies.nix nixrs;
+
+    # Function (crateRoot) -> module
+    module = import ./module nixrs;
+    # Function (config) -> (crateRoot) -> derivation
+    buildConfig = import ./config nixrs;
+    # Function (dependenciesConfig) -> [dependency]
+    dependencySetToList = import ./config/dependencies.nix nixrs;
   };
 in
 nixrs

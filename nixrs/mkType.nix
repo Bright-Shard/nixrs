@@ -1,9 +1,14 @@
+# My solution to dynamic typing. Types are attribute sets with specific fields,
+# plus a `type` field that stores the name of the type. Each type has an
+# associated builder that will create the table if all of the correct fields are
+# present.
+
 {
   attrNames,
   typeOf,
   elem,
-  all,
   length,
+  seq,
   ...
 }:
 
@@ -19,33 +24,34 @@ let
     inherit schema;
 
     # Takes some input, a table with the correct fields and their types, and a
-    # name for the type. Asserts that the input's fields match the correct fields,
-    # then returns a table with the `type` field set.
+    # name for the type. Asserts that the input's fields match the correct
+    # fields, then returns a table with the `type` field set.
     build =
       input:
       let
         inputFields = attrNames input;
-        validateField =
+        fieldIsValid =
           field:
           let
-            input = input.${field};
-            schema = schema.${field};
-            schemaType = typeOf schema;
-            inputType = typeOf input;
+            inputField = input.${field};
+            schemaField = schema.${field};
+            schemaType = typeOf schemaField;
+            inputType = typeOf inputField;
           in
           if schemaType == "lambda" then
-            schema.${field} == input.${field}
+            schemaField == inputField
           else if schemaType == "list" then
-            elem inputType schema
+            elem inputType schemaField
           else
-            inputType == schema;
+            inputType == schemaField;
+        validate =
+          field: if !(fieldIsValid field) then abort "mkType: Field ${field} had the wrong type" else null;
       in
 
       if ((length inputFields) != (length (attrNames schema))) then
         abort "Incorrect number of arguments provided to build a ${typeName} table"
       else
-        assert all validateField inputFields;
-        input
+        seq (map validate inputFields) input
         // {
           type = typeName;
         };

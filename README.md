@@ -9,6 +9,8 @@ The goal of nixrs is to bring Nix's reproducable builds to Rust. All dependencie
 > nixrs is *heavily* work-in-progress. The below README is the end goal for the project, but currently only a fraction of those features are actually implemented.
 >
 > You can see examples where I test nixrs in the `examples/` folder, and the project's massive todo list in [`planning.md`](planning.md).
+>
+> **To be perfectly clear, nixrs is not ready for use in any project in its current state**. But it's getting closer to useable every day!
 
 
 
@@ -76,13 +78,3 @@ A barebones `crate.nix` looks like this:
 ```
 
 As you can see, `crate.nix` strongly resembles `Cargo.toml`. This is intentional - Cargo is already really awesome, so much of nixrs is inspired by it. Also like Cargo, you can build your crate with `nixrs build` and run it with `nixrs run`.
-
-
-
-# Repo Layout
-
-nixrs is a fairly large project, so it's split into 3 main folders:
-
-- [`nixrs`](nixrs): This is the core nixrs module that provides functions for compiling a Rust crate, handling dependencies, downloading the correct toolchain, etc.
-- [`crateOptions`](crateOptions): This provides all of the options for `crate.nix` to set. It's essentially the higher-level nixrs API.
-- [`buildCrate`](buildCrate): This is the Nix code called by the nixrs CLI, which bridges `crateOptions` to `nixrs` to actually compile a Rust crate.
