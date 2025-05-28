@@ -77,9 +77,9 @@ in
       type = attrsOf dependency;
     };
 
-    toolchain-options = import ./toolchain.nix nixrs;
+    toolchain = import ./toolchain.nix nixrs;
 
-    compiler-options = import ./compiler.nix nixrs;
+    compiler = import ./compiler.nix nixrs;
 
     cargo-compatibility = mkOption {
       description = "Whether or not to generate a Cargo.toml file, to make this project compatible with Cargo. Note that when Cargo compatibility is enabled, not all nixrs features will be available, because some of its features do not exist in Cargo.";

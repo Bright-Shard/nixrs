@@ -6,7 +6,7 @@
     edition = 2024;
 
     dependencies = {
-      serde = "1";
+      # serde = "1";
     };
 
     meta.authors = [ "" ];

@@ -19,6 +19,14 @@ map (
       name = depName;
       version = types.crateVersion.fromString dep;
     }
+  else if typeOf dep == "set" then
+    if dep.kind == "link" then
+      types.dependency.store.build {
+        path = dep.source;
+        kind = "link";
+      }
+    else
+      abort "TODO parse full dependency config"
   else
-    abort ""
+    abort "unreachable: dependency wasn't a string nor a set"
 ) (attrNames deps)

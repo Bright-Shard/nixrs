@@ -2,7 +2,6 @@
 
 {
   lib,
-  pkgs,
   crateRoot,
   ...
 }:
@@ -23,10 +22,9 @@ mkOption {
   type = submodule {
     options = {
       rustc-path = mkOption {
-        description = "The path to the rustc binary.";
-        type = str;
-        # TODO use rustc from the toolchain in toolchain options
-        default = "${pkgs.rustc}/bin/rustc";
+        description = "The path to the rustc binary. If null, uses the version of rustc shipped in the Rust toolchain.";
+        type = nullOr str;
+        default = null;
       };
       target-triple = mkOption {
         description = "The target triple to compile this crate for.";

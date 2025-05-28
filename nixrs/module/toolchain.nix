@@ -8,6 +8,8 @@ let
     listOf
     str
     submodule
+    nullOr
+    attrsOf
     ;
 in
 
@@ -21,19 +23,25 @@ mkOption {
         type = str;
         default = "stable";
       };
-      targets = mkOption {
-        description = "Target triples to install in the Rust toolchain.";
-        type = listOf str;
-        # TODO set default to host target triple
+      date = mkOption {
+        description = "Install the channel published on a specific date.";
+        type = nullOr str;
+        default = null;
       };
       profile = mkOption {
         description = "The toolchain profile to install.";
-        type = str;
+        type = nullOr str;
         default = "default";
       };
       components = mkOption {
         description = "Components to install in the Rust toolchain.";
         type = listOf str;
+        default = [ ];
+      };
+      customTargetComponents = mkOption {
+        description = ''Additional components to install for foreign targets. The format is `<target-triple> = [ "component1" "component2" ]`.'';
+        type = attrsOf (listOf str);
+        default = { };
       };
     };
   };

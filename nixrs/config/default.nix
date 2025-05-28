@@ -1,8 +1,10 @@
 {
   pkgs,
-  dependencySetToList,
-  dependenciesToLinks,
+  dependencyConfigToList,
+  dependenciesToSettings,
   compile,
+  currentSystemRust,
+  installToolchain,
   ...
 }:
 
@@ -13,17 +15,30 @@ let
     root = cratePath;
     fileset = cratePath;
   };
+  toolchain = installToolchain {
+    inherit (config.toolchain)
+      channel
+      date
+      profile
+      components
+      customTargetComponents
+      ;
+  };
+  rustcPath =
+    if config.compiler.rustc-path != null then
+      config.compiler.rustc-path
+    else
+      "${toolchain.${currentSystemRust}.SYSROOT}/bin/rustc";
 in
 
 # TODO build scripts
 compile {
   crateName = config.name;
   crateType = "bin"; # TODO support multiple crate types
-  rustcPath = config.compiler-options.rustc-path;
-  bashPath = "${pkgs.bash}/bin/bash";
+  inherit rustcPath;
   linkerPath = "${pkgs.gcc}/bin/cc"; # TODO allow custom linkers
   edition = config.edition;
-  links = dependenciesToLinks (dependencySetToList config.dependencies);
-  target = "x86_64-unknown-linux-gnu"; # TODO use system target & allow override
+  target = currentSystemRust; # TODO allow overriding
   src = "${crateStorePath}/src/main.rs"; # TODO
+  cfg = dependenciesToSettings (dependencyConfigToList config.dependencies);
 }

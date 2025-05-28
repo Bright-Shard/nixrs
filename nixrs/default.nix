@@ -28,6 +28,13 @@ let
     # Attribute set
     lib = pkgs.lib;
 
+    nixTargetToRustTarget = target: (lib.systems.elaborate target).rust.rustcTarget;
+    currentSystemRust = nixTargetToRustTarget builtins.currentSystem;
+
+    download = import ./download.nix nixrs;
+
+    installToolchain = import ./installToolchain.nix nixrs;
+
     # Function
     mkType = import ./mkType.nix nixrs;
     # Function
@@ -35,14 +42,14 @@ let
     # Function
     fetchCrate = import ./fetchCrate.nix nixrs;
     # Function
-    dependenciesToLinks = import ./dependencies.nix nixrs;
+    dependenciesToSettings = import ./dependencies.nix nixrs;
 
     # Function (crateRoot) -> module
     module = import ./module nixrs;
     # Function (config) -> (crateRoot) -> derivation
     buildConfig = import ./config nixrs;
     # Function (dependenciesConfig) -> [dependency]
-    dependencySetToList = import ./config/dependencies.nix nixrs;
+    dependencyConfigToList = import ./config/dependencies.nix nixrs;
   };
 in
 nixrs

@@ -64,7 +64,11 @@ findCrateRoot() {
 }
 
 buildCrate() {
-	manageCratesioIndex
+	# TODO find the appropriate time to run this
+	# Running every build invokes git and adds several seconds to build times
+	# for literally no purpose. But the crates.io index also needs to be
+	# up-to-date.
+	#manageCratesioIndex
 
 	nix-build "$ROOT/buildCrate.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
 
