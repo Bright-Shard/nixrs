@@ -112,6 +112,7 @@
   download,
   attrValues,
   filter,
+  elem,
   ...
 }:
 
@@ -146,13 +147,30 @@
 let
   inherit (lib.trivial) importTOML;
   inherit (pkgs.stdenvNoCC) mkDerivation;
+  inherit (pkgs) symlinkJoin;
+
+  # Additional toolchain profiles nixrs adds. They're meant to be more sensible
+  # defaults for nixrs, which doesn't need some components like Cargo.
+  nixrsProfiles = {
+    nixrs-default = [
+      "rustc"
+      "rust-std"
+      "rust-docs"
+      "rustfmt-preview"
+      "clippy-preview"
+    ];
+  };
 
   url =
     if date == null then
       "https://static.rust-lang.org/dist/channel-rust-${channel}.toml"
     else
       "https://static.rust-lang.org/dist/${date}/channel-rust-${channel}.toml";
-  cfg = importTOML (fetchurl url);
+  toolchainName = "rust-${channel}${if date != null then "-${date}-" else ""}-toolchain";
+  rawCfg = (importTOML (fetchurl url));
+  cfg = rawCfg // {
+    profiles = rawCfg.profiles // nixrsProfiles;
+  };
 
   componentExistsForHost = component: hasAttr target cfg.pkg.${component}.target;
   hostComponents =
@@ -165,68 +183,91 @@ let
     ${target} = hostComponents;
   };
 
-  toolchainName = "rust-${channel}${if date != null then "-${date}-" else ""}-toolchain";
-
-  unpackComponent =
-    componentName: src:
-    derivation {
-      name = "${toolchainName}-${componentName}-extract";
-      system = builtins.currentSystem;
-      outputs = [ "out" ];
-      builder = "${pkgs.gnutar}/bin/tar";
-      args = [
-        "-xf"
-        src
-        "--one-top-level=${placeholder "out"}"
-        "--strip-components=1"
-      ];
-      PATH = "${pkgs.xz}/bin";
-    };
-  downloadComponent =
-    target: componentName:
+  # Resolves the component's actual name from the renames table, adds any
+  # additional dependencies for that component (e.g. clippy depends on the
+  # rustc component), then downloads the component's tar file and installs it
+  # into an isolated derivation.
+  getComponent =
+    targetTriple: componentNameOrAlias:
     let
-      pkg =
-        if hasAttr componentName cfg.pkg then
-          cfg.pkg.${componentName}
-        else if hasAttr componentName cfg.renames then
-          getAttr cfg.renames.${componentName}.to cfg.pkg
+      componentName =
+        if hasAttr componentNameOrAlias cfg.pkg then
+          toString componentNameOrAlias
+        else if hasAttr componentNameOrAlias cfg.renames then
+          cfg.renames.${componentNameOrAlias}.to
         else
-          abort "Couldn't find component `${componentName}`.";
+          abort "Couldn't find component `${componentNameOrAlias}`.";
+      pkg = getAttr componentName cfg.pkg;
       component = pkg.target.${target};
+      deps =
+        with pkgs;
+        if
+          elem componentName [
+            "clippy-preview"
+            "rustfmt-preview"
+            "rustc-codegen-cranelift-preview"
+            "miri-preview"
+            "rust-analyzer-preview"
+          ]
+        then
+          [ (getComponent targetTriple "rustc") ]
+        else if
+          elem componentName [
+            "cargo"
+            "rust-std"
+          ]
+        then
+          [ libgcc ]
+        else if componentName == "rustc" then
+          [
+            libgcc
+            libz
+          ]
+        else if componentName == "rustc-dev" then
+          [
+            libgcc
+            libz
+            "${getComponent targetTriple "llvm-tools-preview"}/lib/rustlib/${targetTriple}"
+          ]
+        else if componentName == "llvm-tools-preview" then
+          [
+            libz
+            libgcc
+          ]
+        else
+          [ ];
+      tarFile =
+        if component.available then
+          download {
+            name = "${toolchainName}-${componentName}";
+            url = component.xz_url;
+            hash = component.xz_hash;
+          }
+        else
+          abort "The component `${componentName}` isn't available for the target `${target}`.";
     in
-    if component.available then
-      download {
-        name = "${toolchainName}-${componentName}";
-        url = component.xz_url;
-        hash = component.xz_hash;
-      }
-    else
-      abort "The component `${componentName}` isn't available for the target `${target}`.";
+    mkDerivation {
+      name = "${toolchainName}-${componentName}-unpack";
+      system = builtins.currentSystem;
+      dontUnpack = true;
+      outputs = [
+        "out"
+      ];
+      postBuild = ''
+        tar -xf ${tarFile} -C . --strip-components=1
+        bash ./install.sh --disable-ldconfig --disable-verify --destdir=$out --prefix=
+      '';
+
+      buildInputs = deps ++ [ pkgs.autoPatchelfHook ];
+    };
+
+  # Takes the derivations from all installed components and symlinks them
+  # together to form a sysroot.
   buildSysroot =
     target: components:
-    mkDerivation {
+    symlinkJoin {
       name = toolchainName;
-      system = builtins.currentSystem;
-      outputs = [ "out" ];
-
-      dontUnpack = true;
-      postBuild = ''
-        for componentSrc in $components; do
-          bash $componentSrc/install.sh --disable-ldconfig --disable-verify --destdir=$out --prefix=
-          # Slightly hacky, but each install script tries to put an uninstall
-          # script in the same location, which causes errors. We don't even
-          # need the uninstall script since the sysroot can be ditched by
-          # deleting it from the store.
-          rm $out/lib/rustlib/uninstall.sh
-        done
-      '';
-      inherit components;
-
-      buildInputs = with pkgs; [
-        autoPatchelfHook
-        libgcc
-        libz
-      ];
+      paths = components;
     };
 in
 
@@ -238,7 +279,7 @@ mapAttrs (
     components = listToAttrs (
       map (component: {
         name = component;
-        value = unpackComponent component (downloadComponent targetTriple component);
+        value = getComponent targetTriple component;
       }) componentList
     );
   in

@@ -5,53 +5,72 @@
   concatStringsSep,
   map,
   filter,
-  placeholder,
+  pkgs,
   ...
 }:
 
-# Args:
-# - crateName: str #name of crate to compile
-# - crateType: str<one valid rustc crate type> #type of crate to compile
-# - rustcPath: path #path to rustc
-# - linkerPath: path #path to cc
-# - edition: int<one valid rust edition> #rust edition to compile with
-# - target: str #target triple to compile for, in rustc format
-# - src: path #nix store path to the crate's main source file (eg main.rs)
-# - cfg: [compilationSetting] #extra compilation settings to pass to rustc
-args:
+{
+  crateName, # str: name of crate to compile
+  crateType, # str<one of rustc crate types>: Type of crate to compile
+  sysroot, # path: path to the sysroot of the Rust toolchain to compile with
+  linkerPath, # path: path to the linker to use
+  edition, # int<one of valid Rust editions>: Rust edition to compile with
+  target, # str: target triple to compile for
+  src, # path: nix store path to the crate's main file (e.g. main.rs, lib.rs)
+  cfg, # [compilationSetting]: extra compilation settings to pass to rustc
+  preventToolchainGc, # bool: add a symlink to the toolchain so it isn't gc'd
+}:
 
 let
   rustcBaseArgs = [
-    args.src
+    src
     "--crate-name"
-    args.crateName
+    crateName
     "--crate-type"
-    args.crateType
+    crateType
     "--edition"
-    (toString args.edition)
+    (toString edition)
     "-C"
-    "linker=${args.linkerPath}"
+    "linker=${linkerPath}"
     "--out-dir"
-    (placeholder "out")
+    "$out"
+    "--sysroot"
+    sysroot
+    "--target"
+    target
   ];
 
-  links = map (cfg: "-L${toString cfg.path}") (filter (cfg: cfg.kind == "link") args.cfg);
+  links = map (cfg: "-L${toString cfg.path}") (filter (cfg: cfg.kind == "link") cfg);
 
   rustcArgs = rustcBaseArgs ++ links;
 
   foreignDeps = map (cfg: "${cfg.name}=${toString cfg.path}") (
-    filter (cfg: cfg.kind == "foreign") args.cfg
+    filter (cfg: cfg.kind == "foreign") cfg
   );
+  basePath = [
+    "${sysroot}/bin"
+    "${pkgs.coreutils}/bin"
+  ];
+  additionalPath = map (cfg: cfg.path) (filter (cfg: cfg.kind == "path") cfg);
+  path = basePath ++ additionalPath;
 in
 derivation {
-  name = args.crateName;
+  name = crateName;
   # TODO: Some crates may only support some systems, should maybe set that here
   system = builtins.currentSystem;
-  builder = args.rustcPath;
+  builder = "${pkgs.bash}/bin/bash";
   outputs = [ "out" ];
-  args = rustcArgs;
+  args = [
+    "-c"
+    (
+      ''
+        rustc ${concatStringsSep " " rustcArgs}
+      ''
+      + (if preventToolchainGc then "ln -s ${sysroot} $out/toolchain-sysroot" else "")
+    )
+  ];
 
   # Environment variables
-  PATH = concatStringsSep ":" (map (cfg: cfg.path) (filter (cfg: cfg.kind == "path") args.cfg));
+  PATH = concatStringsSep ":" path;
   NIXRS_FOREIGN_DEPENDENCIES = concatStringsSep ":" foreignDeps;
 }

@@ -7,7 +7,9 @@
 }:
 
 deps:
+
 assert typeOf deps == "set";
+
 map (
   depName:
   let

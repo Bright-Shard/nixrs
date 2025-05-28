@@ -10,7 +10,7 @@
 }:
 
 let
-  inherit (types) semanticVersion dependency;
+  inherit (types) dependency;
 in
 
 crate:
