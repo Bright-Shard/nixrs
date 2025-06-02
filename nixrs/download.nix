@@ -10,8 +10,11 @@
 }:
 
 {
+  # File to download
   url,
+  # sha-256 hash of the downloaded file
   hash,
+  # Derivation name, `-download` will be appended
   name,
 }:
 

@@ -1,6 +1,6 @@
 {
   lib,
-  crateRoot,
+  workspaceRoot,
   ...
 }:
 
@@ -33,7 +33,7 @@ mkOption {
       readme = mkOption {
         description = "The path to the crate's README file.";
         type = path;
-        default = /${crateRoot}/README.md;
+        default = /${workspaceRoot}/README.md;
       };
       homepage = mkOption {
         description = "A link to the crate's homepage.";

@@ -5,5 +5,8 @@
 pkgs.mkShell {
   name = "nixrs-dev-shell";
 
-  packages = with pkgs; [ git ];
+  packages = with pkgs; [
+    git
+    (callPackage ./package.nix { })
+  ];
 }

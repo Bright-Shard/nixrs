@@ -2,7 +2,7 @@
 
 {
   lib,
-  crateRoot,
+  workspaceRoot,
   ...
 }:
 
@@ -36,12 +36,12 @@ mkOption {
       prebuild-script = mkOption {
         description = "A Rust script to run before the crate is built.";
         type = path;
-        default = /${crateRoot}/build.rs;
+        default = /${workspaceRoot}/build.rs;
       };
       postbuild-script = mkOption {
         description = "A Rust script to run after the crate is built.";
         type = path;
-        default = /${crateRoot}/post-build.rs;
+        default = /${workspaceRoot}/post-build.rs;
       };
     };
   };

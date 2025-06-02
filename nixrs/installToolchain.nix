@@ -198,7 +198,13 @@ let
         else
           abort "Couldn't find component `${componentNameOrAlias}`.";
       pkg = getAttr componentName cfg.pkg;
-      component = pkg.target.${target};
+      component =
+        if hasAttr target pkg.target then
+          pkg.target.${target}
+        else if hasAttr "*" pkg.target then
+          pkg.target."*"
+        else
+          abort "Couldn't install component ${componentNameOrAlias} for target ${target}";
       deps =
         with pkgs;
         if

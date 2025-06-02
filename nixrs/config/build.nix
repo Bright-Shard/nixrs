@@ -4,25 +4,27 @@
   dependenciesToSettings,
   compile,
   currentSystemRust,
-  installToolchain,
+  toolchain,
+  workspaceRoot,
+  config,
+  types,
+  toString,
   ...
 }:
 
-config: cratePath:
-
 let
   crateStorePath = pkgs.lib.fileset.toSource {
-    root = cratePath;
-    fileset = cratePath;
+    root = workspaceRoot;
+    fileset = workspaceRoot;
   };
-  toolchain = installToolchain {
-    inherit (config.toolchain)
-      channel
-      date
-      profile
-      components
-      ;
-    customTargetComponents = config.toolchain.custom-target-components;
+  raCrate = types.rustAnalyzerCrate.build {
+    root_module = "src/main.rs"; # TODO
+    edition = toString config.edition;
+    deps = [ ];
+    is_workspace_member = true;
+    cfg = [ ];
+    env = { };
+    is_proc_macro = false; # TODO
   };
 in
 
@@ -37,4 +39,5 @@ compile {
   src = "${crateStorePath}/src/main.rs"; # TODO
   cfg = dependenciesToSettings (dependencyConfigToList config.dependencies);
   preventToolchainGc = config.toolchain.prevent-gc;
+  raCrates = [ raCrate ]; # TODO dependencies
 }

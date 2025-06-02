@@ -1,4 +1,16 @@
-# basic planning
+# these are done
+
+- wrap rustc & actually compile a crate
+- basic Nix module layout
+- lower level nixrs API for when the module can't be used
+- toolchain management
+- shell.nix integration
+
+
+
+# remaining todos
+
+Basically CLI improvements, supporting dependencies, workspaces, and more compilation options
 
 -[ ] Command for running binary crates
 -[ ] Command for building & running a test harness

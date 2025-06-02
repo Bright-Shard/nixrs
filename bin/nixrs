@@ -70,11 +70,15 @@ buildCrate() {
 	# up-to-date.
 	#manageCratesioIndex
 
-	nix-build "$ROOT/buildCrate.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
+	nix-build "$ROOT/cli.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
 
 	if [ $? != 0 ]; then
 		echo "nixrs error: Crate failed to compile."
 		exit 3
+	fi
+
+	if [ -e $crateRoot/target/rust-project.json ]; then
+		ln -sf $crateRoot/target/rust-project.json $crateRoot/rust-project.json
 	fi
 }
 

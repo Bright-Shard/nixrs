@@ -1,16 +1,12 @@
 {
   lib,
+  VALID_RUST_EDITIONS,
+  optionTypes,
+  nixrs,
   ...
-}@inputs:
-
-crateRoot:
+}:
 
 let
-  nixrs = inputs // {
-    inherit crateRoot;
-    optionTypes = import ./optionTypes.nix nixrs;
-  };
-
   inherit (lib) mkOption;
   inherit (lib.types)
     nullOr
@@ -19,7 +15,7 @@ let
     enum
     attrsOf
     ;
-  inherit (nixrs.optionTypes)
+  inherit (optionTypes)
     semanticVersion
     dependency
     ;
@@ -43,12 +39,7 @@ in
 
     edition = mkOption {
       description = "The Rust edition this crate uses.";
-      type = enum [
-        2015
-        2018
-        2021
-        2024
-      ];
+      type = enum VALID_RUST_EDITIONS;
     };
     rust-version = mkOption {
       description = "The crate's MSRV (Minimum Supported Rust Version).";

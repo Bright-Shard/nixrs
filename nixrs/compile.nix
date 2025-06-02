@@ -6,6 +6,7 @@
   map,
   filter,
   pkgs,
+  toJSON,
   ...
 }:
 
@@ -19,6 +20,7 @@
   src, # path: nix store path to the crate's main file (e.g. main.rs, lib.rs)
   cfg, # [compilationSetting]: extra compilation settings to pass to rustc
   preventToolchainGc, # bool: add a symlink to the toolchain so it isn't gc'd
+  raCrates ? null, # null or [rustAnalyzerCrate]: if !null, used to make RA cfg
 }:
 
 let
@@ -53,6 +55,17 @@ let
   ];
   additionalPath = map (cfg: cfg.path) (filter (cfg: cfg.kind == "path") cfg);
   path = basePath ++ additionalPath;
+
+  raCfg =
+    if raCrates == null then
+      null
+    else
+      toJSON {
+        inherit sysroot;
+        crates = raCrates;
+      };
+
+  genIf = flag: string: if flag then string else "";
 in
 derivation {
   name = crateName;
@@ -62,12 +75,11 @@ derivation {
   outputs = [ "out" ];
   args = [
     "-c"
-    (
-      ''
-        rustc ${concatStringsSep " " rustcArgs}
-      ''
-      + (if preventToolchainGc then "ln -s ${sysroot} $out/toolchain-sysroot" else "")
-    )
+    (''
+      rustc ${concatStringsSep " " rustcArgs}
+      ${genIf preventToolchainGc "ln -s ${sysroot} $out/toolchain-sysroot"}
+      ${genIf (raCfg != null) "echo '${raCfg}' > $out/rust-project.json"}
+    '')
   ];
 
   # Environment variables
