@@ -1,5 +1,5 @@
 {
-  registries,
+  registries ? { },
   pkgs ? import <nixpkgs> { },
 }:
 

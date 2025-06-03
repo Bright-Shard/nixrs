@@ -8,7 +8,7 @@ stdenvNoCC.mkDerivation {
   preInstall = ''
     mkdir $out
     mv bin $out/bin
-    mv cli.nix $out
+    mv misc $out
     mv nixrs $out
   '';
 }

@@ -75,11 +75,11 @@ derivation {
   outputs = [ "out" ];
   args = [
     "-c"
-    (''
+    ''
       rustc ${concatStringsSep " " rustcArgs}
       ${genIf preventToolchainGc "ln -s ${sysroot} $out/toolchain-sysroot"}
       ${genIf (raCfg != null) "echo '${raCfg}' > $out/rust-project.json"}
-    '')
+    ''
   ];
 
   # Environment variables

@@ -13,6 +13,7 @@ run, r			Run the current crate.
 check, c			View compiler warnings/errors when building the current crate.
 clean				Remove build files, then garbage-collect the nix store.
 index-sync		Sync crate repository indexes, so nixrs' crate list is up to date
+gen-shell		Generate a shell.nix file in the current directory for nixrs
 "
 
 ROOT=$(dirname $0)/..
@@ -70,7 +71,7 @@ buildCrate() {
 	# up-to-date.
 	#manageCratesioIndex
 
-	nix-build "$ROOT/cli.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
+	nix-build "$ROOT/misc/cli.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
 
 	if [ $? != 0 ]; then
 		echo "nixrs error: Crate failed to compile."
@@ -106,6 +107,14 @@ case "$cmd" in
 	"index-sync")
 		# TODO non-crates.io repos
 		manageCratesioIndex
+	;;
+	"gen-shell")
+		if [ -e shell.nix ]; then
+			echo "shell.nix already exists - backing up to shell.bak.nix..."
+			mv shell.nix shell.bak.nix
+		fi
+
+		cp $ROOT/misc/shell.template.nix shell.nix
 	;;
 	*)
 		echo "nixrs warning: Unknown command \`$cmd\`. Showing help menu."
