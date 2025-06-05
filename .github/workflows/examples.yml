@@ -13,8 +13,12 @@ jobs:
          - run: nix-channel --update
          - working-directory: examples
            run: |
+              pwd
+              ls
+              ls ..
+              ls ../..
               for example in *; do
                   cd $example
-                  /home/runner/nixrs/bin/nixrs b
+                  ../../bin/nixrs b
                   cd ..
               done
