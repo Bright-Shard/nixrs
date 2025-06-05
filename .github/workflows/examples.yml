@@ -9,8 +9,8 @@ jobs:
            with:
               extra_nix_config: "experimental-features = "
               nix_path: nixpkgs=$HOME/.nix-defexpr/channels/nixos
-         - run: sudo nix-channel --add https://nixos.org/channels/nixos-unstable-small nixos
-         - run: sudo nix-channel --update
+         - run: nix-channel --add https://nixos.org/channels/nixos-unstable-small nixos
+         - run: nix-channel --update
          - run: nix-env --install --file install.nix
          - working-directory: examples
            run: |
