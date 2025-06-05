@@ -1,8 +1,8 @@
 name: Build nixrs Examples
 on: [push, pull_request, workflow_dispatch]
 jobs:
-   tests:
-      runs-on: linux
+   Build nixrs Examples:
+      runs-on: ubuntu-latest
       steps:
          - uses: actions/checkout@v4
          - uses: cachix/install-nix-action@v31
