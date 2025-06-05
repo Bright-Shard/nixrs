@@ -7,6 +7,6 @@ pkgs.mkShell {
 
   packages = with pkgs; [
     git
-    (callPackage ./package.nix { })
+    ./. # the bin folder will get added to PATH
   ];
 }

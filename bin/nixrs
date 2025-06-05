@@ -60,7 +60,7 @@ findCrateRoot() {
 		crateRoot=$(dirname $crateRoot)
 	done
 
-	if [ "$crateRoot" == "/" ]; then
+	if [ "$crateRoot" = "/" ]; then
 			echo "nixrs error: No \`crate.nix\` found in this folder or any of its parent folders. Is this a nixrs project?"
 			exit 2
 	fi

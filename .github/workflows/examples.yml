@@ -13,7 +13,6 @@ jobs:
          - run: nix-channel --update
          - working-directory: examples
            run: |
-              BLACKLIST=("cratesio-dep" "workspace")
               for example in *; do
                 case "$example" in
                   "cratesio-dep" | "workspace")
