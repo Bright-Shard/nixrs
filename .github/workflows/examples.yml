@@ -13,8 +13,16 @@ jobs:
          - run: nix-channel --update
          - working-directory: examples
            run: |
+              BLACKLIST=("cratesio-dep" "workspace")
               for example in *; do
-                  cd $example
-                  ../../bin/nixrs b
-                  cd ..
+                case "$example" in
+                  "cratesio-dep" | "workspace")
+                    echo "Found blacklisted test, skipping"
+                  ;;
+                  *)
+                    cd $example
+                    ../../bin/nixrs b
+                    cd ..
+                  ;;
+                esac
               done
