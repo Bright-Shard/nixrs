@@ -11,9 +11,9 @@ jobs:
               nix_path: nixpkgs=/home/runner/.nix-defexpr/channels/nixos
          - run: nix-channel --add https://nixos.org/channels/nixos-unstable-small nixos
          - run: nix-channel --update
-         - run: nix-env --install --file install.nix
          - working-directory: examples
            run: |
+              alias nixrs=/home/runner/nixrs/bin/nixrs
               for example in *; do
                   cd $example
                   nixrs b
