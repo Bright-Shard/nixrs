@@ -8,7 +8,7 @@ jobs:
          - uses: cachix/install-nix-action@v31
            with:
               nix_path: nixpkgs=channel:nixos-unstable
-         - run: nix-env --install --file package.nix
+         - run: nix-env --install --file install.nix
          - working-directory: examples
            run: |
               for example in *; do
