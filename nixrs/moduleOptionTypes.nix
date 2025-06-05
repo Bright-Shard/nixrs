@@ -28,8 +28,13 @@ rec {
   dependencyConfig = submodule {
     options = {
       version = mkOption {
-        description = "The dependency's version.";
+        description = "The dependency's version. Only necessary for crates downloaded from an online repository.";
         type = crateVersion;
+      };
+      repo = mkOption {
+        description = "The crate repository to download this crate from.";
+        type = str;
+        default = "cratesio";
       };
       source = mkOption {
         description = "The dependency's source.";

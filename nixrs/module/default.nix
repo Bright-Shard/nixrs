@@ -36,6 +36,15 @@ in
       description = "The crate's version.";
       type = semanticVersion;
     };
+    crate-type = mkOption {
+      description = "If this crate is a binary (bin), library (lib), or procedural macro (proc-macro).";
+      type = enum [
+        "bin"
+        "lib"
+        "proc-macro"
+      ];
+      default = "bin";
+    };
 
     edition = mkOption {
       description = "The Rust edition this crate uses.";

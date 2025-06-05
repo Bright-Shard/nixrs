@@ -1,14 +1,14 @@
 {
   pkgs,
-  dependencyConfigToList,
-  dependenciesToSettings,
-  compile,
+  dependenciesToCompilationSettings,
+  rustc,
   currentSystemRust,
   toolchain,
   workspaceRoot,
   config,
   types,
   toString,
+  elem,
   ...
 }:
 
@@ -17,27 +17,38 @@ let
     root = workspaceRoot;
     fileset = workspaceRoot;
   };
+  srcRoot =
+    if
+      elem config.crate-type [
+        "lib"
+        "proc-macro"
+      ]
+    then
+      "src/lib.rs"
+    else if config.crate-type == "bin" then
+      "src/main.rs"
+    else
+      abort "unreachable";
   raCrate = types.rustAnalyzerCrate.build {
-    root_module = "src/main.rs"; # TODO
+    root_module = srcRoot;
     edition = toString config.edition;
-    deps = [ ];
+    deps = [ ]; # TODO
     is_workspace_member = true;
-    cfg = [ ];
-    env = { };
+    cfg = [ ]; # TODO allow configuring
+    env = { }; # TODO allow configuring
     is_proc_macro = false; # TODO
   };
 in
 
-# TODO build scripts
-compile {
+rustc {
   crateName = config.name;
-  crateType = "bin"; # TODO support multiple crate types
+  crateType = config.crate-type;
   sysroot = toolchain.${currentSystemRust}.SYSROOT;
   linkerPath = "${pkgs.gcc}/bin/cc"; # TODO allow custom linkers
   edition = config.edition;
   target = currentSystemRust; # TODO allow overriding
-  src = "${crateStorePath}/src/main.rs"; # TODO
-  cfg = dependenciesToSettings (dependencyConfigToList config.dependencies);
+  src = "${crateStorePath}/${srcRoot}"; # TODO
+  cfg = dependenciesToCompilationSettings config.dependencies;
   preventToolchainGc = config.toolchain.prevent-gc;
   raCrates = [ raCrate ]; # TODO dependencies
 }

@@ -7,6 +7,7 @@
   filter,
   pkgs,
   toJSON,
+  addErrorContext,
   ...
 }:
 
@@ -67,7 +68,7 @@ let
 
   genIf = flag: string: if flag then string else "";
 in
-derivation {
+addErrorContext "While compiling ${crateName}" (derivation {
   name = crateName;
   # TODO: Some crates may only support some systems, should maybe set that here
   system = builtins.currentSystem;
@@ -85,4 +86,4 @@ derivation {
   # Environment variables
   PATH = concatStringsSep ":" path;
   NIXRS_FOREIGN_DEPENDENCIES = concatStringsSep ":" foreignDeps;
-}
+})

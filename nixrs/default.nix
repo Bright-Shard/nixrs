@@ -50,8 +50,11 @@ let
     #
 
     inherit nixrs;
+    # Function to build a nixrs or Cargo crate. Simply takes the path to the
+    # crate to build.
+    compileCrate = import ./compileCrate.nix nixrs;
     # Nix wrapper for rustc.
-    compile = import ./compile.nix nixrs;
+    rustc = import ./rustc.nix nixrs;
     # Download a crate from a registry like crates.io.
     fetchCrate = import ./fetchCrate.nix nixrs;
     # Convert a list of dependencies to a list of compilation settings that
@@ -111,10 +114,12 @@ let
             };
             # Takes a Nix module that sets nixrs' options, then
             # compiles the Rust project accordingly with nixrs' API.
-            buildModule = import ./config/build.nix nixrs;
+            compileModule = import ./config/compile.nix nixrs;
             # Packages to add to a devshell for a nixrs project.
             shellPackages = import ./config/shellPackages.nix nixrs;
-            dependencyConfigToList = import ./config/dependencies.nix nixrs;
+            # Converts an attribute set of dependencies to a list of
+            # compilation settings.
+            dependenciesToCompilationSettings = import ./config/depsToCompSettings.nix nixrs;
           }
         );
     in

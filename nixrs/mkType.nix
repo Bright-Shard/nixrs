@@ -8,7 +8,8 @@
   typeOf,
   elem,
   length,
-  seq,
+  deepSeq,
+  addErrorContext,
   ...
 }:
 
@@ -39,22 +40,24 @@ let
             inputType = typeOf inputField;
           in
           if schemaType == "lambda" then
-            schemaField == inputField
+            schemaField inputField
           else if schemaType == "list" then
             elem inputType schemaField
           else
             inputType == schemaField;
         validate =
-          field: if !(fieldIsValid field) then abort "mkType: Field ${field} had the wrong type" else null;
+          field: if !(fieldIsValid field) then abort "mkType: Field `${field}` had the wrong type" else null;
       in
 
-      if ((length inputFields) != (length (attrNames schema))) then
-        abort "Incorrect number of arguments provided to build a ${typeName} table"
-      else
-        seq (map validate inputFields) input
-        // {
-          type = typeName;
-        };
+      addErrorContext "While building type `${typeName}`" (
+        if ((length inputFields) != (length (attrNames schema))) then
+          abort "Incorrect number of arguments provided to build a ${typeName} table"
+        else
+          deepSeq (map validate inputFields) input
+          // {
+            type = typeName;
+          }
+      );
 
     isType = val: val.type == typeName;
 

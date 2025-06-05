@@ -5,6 +5,7 @@
   types,
   fetchCrate,
   readDir,
+  nixrs,
   ...
 }:
 
@@ -17,7 +18,9 @@ let
     let
       crateRoot = readDir crate.path;
     in
-    if crateRoot ? "crate.nix" then
+    if crateRoot ? "build.nix" then
+      import "${crateRoot}/build.nix" nixrs
+    else if crateRoot ? "crate.nix" then
       abort "TODO: nixrs crate"
     else if crateRoot ? "Cargo.toml" then
       abort "TODO: Cargo crate"

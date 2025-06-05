@@ -6,29 +6,4 @@
   pkgs ? import <nixpkgs> { },
 }:
 
-let
-  inherit (builtins) readDir;
-
-  nixrs =
-    (import ./nixrs {
-      inherit pkgs;
-      inherit registries;
-    }).withModule
-      crateRoot
-      module;
-  module = pkgs.lib.evalModules {
-    modules = [
-      nixrs.module
-      /${crateRoot}/crate.nix
-    ];
-    specialArgs = {
-      inherit pkgs;
-      inherit (pkgs) lib;
-      inherit nixrs;
-    };
-  };
-in
-if (readDir crateRoot) ? "build.nix" then
-  import /${crateRoot}/build.nix nixrs
-else
-  nixrs.buildModule
+(import ../nixrs { inherit registries pkgs; }).compileCrate crateRoot
