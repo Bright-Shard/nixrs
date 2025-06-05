@@ -8,7 +8,7 @@ jobs:
          - uses: cachix/install-nix-action@v31
            with:
               extra_nix_config: "experimental-features = "
-              nix_path: nixpkgs=$HOME/.nix-defexpr/channels/nixos
+              nix_path: nixpkgs=/home/runner/.nix-defexpr/channels/nixos
          - run: nix-channel --add https://nixos.org/channels/nixos-unstable-small nixos
          - run: nix-channel --update
          - run: nix-env --install --file install.nix
