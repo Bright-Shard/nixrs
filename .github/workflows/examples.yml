@@ -1,7 +1,7 @@
 name: Build nixrs Examples
 on: [push, pull_request, workflow_dispatch]
 jobs:
-   Build nixrs Examples:
+   build-examples:
       runs-on: ubuntu-latest
       steps:
          - uses: actions/checkout@v4
