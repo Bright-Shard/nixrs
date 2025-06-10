@@ -1,6 +1,7 @@
 # Downloads a file. This function differs from nixpkgs.fetchurl because `hash`
 # is the hash of the file, not the derivation, which makes it a little easier
-# to work with for downloading toolchain files.
+# to work with for downloading toolchain components and crates. In both of
+# those situations, the SHA-256 hash of the file is given to us in advance.
 
 {
   currentSystem,

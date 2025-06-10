@@ -50,8 +50,8 @@ let
     #
 
     inherit nixrs;
-    # Function to build a nixrs or Cargo crate. Simply takes the path to the
-    # crate to build.
+    # Function to build a nixrs or Cargo crate. Takes the path of the crate to
+    # build, and optionally workspace settings for the crate.
     compileCrate = import ./compileCrate.nix nixrs;
     # Nix wrapper for rustc.
     rustc = import ./rustc.nix nixrs;
@@ -86,6 +86,11 @@ let
   };
   nixrsModule =
     workspaceRoot: module:
+    assert builtins.elem (builtins.typeOf workspaceRoot) [
+      "string"
+      "path"
+    ];
+    assert builtins.typeOf module == "set";
     let
       nixrsWithModule =
         nixrs
@@ -104,13 +109,13 @@ let
             module = import ./module nixrs;
             # Path to the toolchain installed by nixrs
             toolchain = nixrs.installToolchain {
-              inherit (module.config.toolchain)
+              inherit (module.config.workspace.toolchain)
                 channel
                 date
                 profile
                 components
                 ;
-              customTargetComponents = module.config.toolchain.custom-target-components;
+              customTargetComponents = module.config.workspace.toolchain.custom-target-components;
             };
             # Takes a Nix module that sets nixrs' options, then
             # compiles the Rust project accordingly with nixrs' API.

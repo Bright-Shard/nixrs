@@ -41,17 +41,37 @@ nixrs is largely intended for large programs written in Rust that need more flex
 
 # Installation
 
-Nixrs must be installed with Nix. To install the latest version, add this to your list of packages (in `configuration.nix`, `shell.nix`, or whatever else):
+nixrs requires both Nix and Nixpkgs. To install the CLI, just call `pkgs.callPackage`. To use the nixrs API, just import `path/to/nixrs/nixrs`.
 
+Examples:
 ```nix
-(pkgs.callPackage (pkgs.fetchFromGitHub {
-	owner = "bright-shard";
-	repo = "nixrs";
-	rev = "main";
-}) { })
-```
+let
+	# Download the latest nixrs version
+	nixrs = builtins.fetchGit {
+		url = "https://github.com/bright-shard/nixrs.git";
+		ref = "main";
+	};
+	# Or download a specific release
+	nixrs = pkgs.fetchFromGitHub {
+		owner = "bright-shard";
+		repo = "main";
+		rev = "invalid"; # Put version here
+		hash = "invalid"; # Put the hash the error message gives you here
+	};
+in
 
-Nix will error about a hash mismatch. Copy the hash from the error message, then add `hash = "<paste hash here>";` to the `fetchFromGitHub` arguments. If you would like to install a specific version of nixrs, change `rev` to that version.
+# Install the CLI
+pkgs.callPackage nixrs { }
+
+# Or import the nixrs library to use the nixrs API in some other Nix code
+import "${nixrs}/nixrs" {
+	# Optional, specify the registries that nixrs can download crates from
+	# (see nixrs/default.nix)
+	registries = {};
+	# Optional, override the version of nixpkgs that nixrs uses
+	pkgs = myCustomNixpkgs;
+}
+```
 
 
 
@@ -63,21 +83,22 @@ nixrs is largely inspired by Cargo, so nixrs projects are structured similarly t
 >
 > - nixrs uses a standard [Nix module](https://nix.dev/tutorials/module-system/index.html), so it's the same format used by NixOS' `configuration.nix` file.
 > - nixrs does not currently support flakes, since flakes are unstable. nixrs does its best to only use stable Nix features so that you don't need to set any additional options to use it.
+> - Currently, downloading a toolchain with nixrs involves an import from derivation. It's not a bad one (it downloads one TOML file and parses it), but it is there. This will be removed when dynamic derivations are stable.
 
 A barebones `crate.nix` looks like this:
 
 ```nix
-{ ... }:
+{ ... }: # This is needed! It's a Nix thing.
 {
-  name = "hello_world";
-  version = "0.0.1";
+  name = "hello-world";
+  version = "0.1.0";
   edition = 2024;
-
-  meta.authors = [ "me!" ];
 }
 ```
 
 As you can see, `crate.nix` strongly resembles `Cargo.toml`. This is intentional - Cargo is already really awesome, so much of nixrs is inspired by it. Also like Cargo, you can build your crate with `nixrs build` and run it with `nixrs run`.
+
+nixrs will generate a barebones project for you if you call `nixrs new` or `nixrs init`. It'll also generate a `shell.nix` file, so if you have [direnv](https://direnv.net/) you'll automatically get a [devshell](https://nix.dev/tutorials/first-steps/declarative-shell.html) with your Rust toolchain and any binary dependencies you add with nixrs.
 
 
 
@@ -89,7 +110,7 @@ In a situation like that, you can skip the Nix module and just use the nixrs API
 
 There aren't many docs written for the nixrs API outside of the nixrs source code. You can see all of nixrs' functions in `nixrs/default.nix`. You can look in `nixrs/config` for an example of using the nixrs API - that portion of the codebase glues the nixrs Nix Module to the nixrs API and calls all the correct functions to build a crate configured with `crate.nix`.
 
-> Note: The nixrs API is currently extremely unstable because nixrs is still very WIP.
+> Note: The nixrs API is currently extremely unstable because nixrs is still very WIP. If you use it, you should probably pin nixrs to a specific Git commit and update carefully.
 
 
 

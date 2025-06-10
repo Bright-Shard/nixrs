@@ -8,6 +8,16 @@
 
 
 
+# known bugs
+
+-[x] Cargo allows compiling crates with a - in the name. When nixrs does the same thing rustc errors.
+	- This is because a package != a crate. Packages can have -, but crates cannot.
+	- Cargo builds packages, nixrs builds crates but should instead build packages.
+	- I'm not clear if packages are an actual rustc setting or just what Cargo calls its crates. For now nixrs replaces `-` with `_` in the crate name, but I should look into this more in case I'm missing something else.
+	- https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html
+
+
+
 # remaining todos
 
 Basically CLI improvements, supporting dependencies, workspaces, and more compilation options

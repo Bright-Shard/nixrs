@@ -6,20 +6,29 @@
   compileCrate,
   fetchCrate,
   elem,
+  config,
+  toString,
+  replaceStrings,
   ...
 }:
 
 let
   inherit (types) compilationSetting remoteCrate crateVersion;
-  fetchAndCompileCrate = crate: compileCrate (fetchCrate (remoteCrate.build crate));
+  fetchAndCompileCrate =
+    crate:
+    compileCrate {
+      crateRoot = fetchCrate (remoteCrate.build crate);
+      workspaceCfg = config.workspace;
+    };
 in
 
 deps:
 
 map (
-  depName:
+  depNameRaw:
   let
-    dep = deps.${depName};
+    depName = replaceStrings [ "-" ] [ "_" ] depNameRaw;
+    dep = deps.${depNameRaw};
     kindAndPath =
       if typeOf dep == "string" then
         {
@@ -38,7 +47,7 @@ map (
           ]
         then
           if dep.source == null then
-            abort "The ${dep.kind} dependency `${depName}` must have `source` set"
+            abort "The ${dep.kind} dependency `${depNameRaw}` must have `source` set"
           else
             {
               kind = dep.kind;
@@ -53,7 +62,10 @@ map (
           let
             path =
               if dep.source != null then
-                dep.source
+                compileCrate {
+                  crateRoot = dep.source;
+                  workspaceCfg = config.workspace;
+                }
               else if dep.version != null then
                 fetchAndCompileCrate {
                   name = depName;
@@ -61,17 +73,18 @@ map (
                   version = dep.version;
                 }
               else
-                abort "Dependency `${depName}` must have `source` or `version` set";
+                abort "Dependency `${depNameRaw}` must have `source` or `version` set";
             kind =
               if dep.kind == "crate" then
-                "link"
+                "crate"
               else if dep.kind == "binary" then
                 "path"
               else
                 abort "Unreachable";
           in
           {
-            inherit path kind;
+            inherit kind;
+            path = toString path;
           }
         else
           abort "Unreachable"
@@ -83,4 +96,5 @@ map (
     kind = kindAndPath.kind;
     path = kindAndPath.path;
   }
+
 ) (attrNames deps)

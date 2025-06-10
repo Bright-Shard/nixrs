@@ -16,7 +16,7 @@ let
     oneOf
     submodule
     enum
-    pathInStore
+    path
     strMatching
     ;
 in
@@ -38,7 +38,7 @@ rec {
       };
       source = mkOption {
         description = "The dependency's source.";
-        type = nullOr pathInStore;
+        type = nullOr path;
         default = null;
       };
       features = mkOption {

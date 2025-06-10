@@ -16,6 +16,8 @@ check, c			View compiler warnings/errors when building the current crate.
 clean				Remove build files, then garbage-collect the nix store.
 index-sync		Sync crate repository indexes, so nixrs' crate list is up to date
 gen-shell		Generate a shell.nix file in the current directory for nixrs
+new            Create a new nixrs project with the given name
+init           Initialise a new nixrs project in the current directory
 "
 
 ROOT=$(dirname $0)/..
@@ -85,6 +87,17 @@ buildCrate() {
 	fi
 }
 
+init() {
+	cd $1
+	git init
+	cp $ROOT/misc/shell.template.nix shell.nix
+	cp $ROOT/misc/crate.template.nix crate.nix
+	sed -i -e "s/CRATE-NAME-HERE/$(basename $(pwd))/g" crate.nix
+	mkdir src
+	cp $ROOT/misc/main.template.rs src/main.rs
+	cd - >/dev/null
+}
+
 case "$cmd" in
 	"run" | "r")
 		findCrateRoot
@@ -117,6 +130,13 @@ case "$cmd" in
 		fi
 
 		cp $ROOT/misc/shell.template.nix shell.nix
+	;;
+	"new")
+		mkdir $2
+		init $2
+	;;
+	"init")
+		init .
 	;;
 	*)
 		echo "nixrs warning: Unknown command \`$cmd\`. Showing help menu."

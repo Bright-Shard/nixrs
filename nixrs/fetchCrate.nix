@@ -47,10 +47,9 @@ addErrorContext "While downloading the crate `${crate.name}`" (
           /${registry}/3/${substring 0 1 crate.name}/${crate.name}
         else
           /${registry}/${substring 0 2 crate.name}/${substring 2 2 crate.name}/${crate.name};
-      crateInfoLines = split "\n" (readFile path);
-      crateInfo = map (val: fromJSON val) (
-        filter (val: typeOf val == "string" && val != "") crateInfoLines
+      allCrateVersions = map (val: fromJSON val) (
+        filter (val: typeOf val == "string" && val != "") (split "\n" (readFile path))
       );
     in
-    abort "Crate meta: ${toString (map (info: builtins.toJSON info) crateInfo)}"
+    abort "Crate meta: ${toString (map (info: builtins.toJSON info) allCrateVersions)}"
 )

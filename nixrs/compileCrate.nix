@@ -6,27 +6,40 @@
   ...
 }:
 
-cratePath:
+{
+  crateRoot,
+  workspaceCfg ? null,
+}:
 let
-  crateRoot = readDir cratePath;
+  crateDir = readDir crateRoot;
 in
-if crateRoot ? "build.nix" then
-  import "${cratePath}/build.nix" nixrs
-else if crateRoot ? "crate.nix" then
+if crateDir ? "build.nix" then
+  import "${crateRoot}/build.nix" nixrs
+else if crateDir ? "crate.nix" then
   let
-    module = lib.evalModules {
+    moduleRaw = lib.evalModules {
       modules = [
         nixrsWithModule.module
-        /${cratePath}/crate.nix
+        "${crateRoot}/crate.nix"
       ];
       specialArgs = {
         inherit pkgs lib nixrs;
       };
     };
-    nixrsWithModule = nixrs.withModule cratePath module;
+    module =
+      if workspaceCfg != null then
+        moduleRaw
+        // {
+          config = moduleRaw.config // {
+            workspace = workspaceCfg;
+          };
+        }
+      else
+        moduleRaw;
+    nixrsWithModule = nixrs.withModule crateRoot module;
   in
   nixrsWithModule.compileModule
-else if crateRoot ? "Cargo.toml" then
-  abort "TODO: Cargo crate"
+else if crateDir ? "Cargo.toml" then
+  abort "TODO: Compile Cargo crate"
 else
-  abort "Dependency at `${cratePath}` is supposed to be a crate, but it doesn't have a `Cargo.toml` file nor a `crate.nix` file."
+  abort "Dependency at `${crateRoot}` is supposed to be a crate, but it doesn't have a `Cargo.toml` file nor a `crate.nix` file."

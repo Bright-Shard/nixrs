@@ -14,13 +14,17 @@ mkType {
       val:
       elem val [
         "path"
+        "crate"
         "link"
         "foreign"
       ];
     # The path to add to PATH, or the path to the library to link against, or
     # the path to add to NIXRS_FOREIGN_DEPENDENCIES, depending on the setting
     # type.
-    path = "path";
+    path = [
+      "string"
+      "path"
+    ];
     # Only used in foreign compilation settings. Sets the name that's used in
     # NIXRS_FOREIGN_DEPENDENCIES.
     name = "string";

@@ -77,8 +77,6 @@ in
       type = attrsOf dependency;
     };
 
-    toolchain = import ./toolchain.nix nixrs;
-
     compiler = import ./compiler.nix nixrs;
 
     cargo-compatibility = mkOption {
@@ -87,6 +85,9 @@ in
       default = false;
     };
 
-    rust-analyzer = import ./rustAnalyzer.nix nixrs;
+    workspace = {
+      toolchain = import ./toolchain.nix nixrs;
+      rust-analyzer = import ./rustAnalyzer.nix nixrs;
+    };
   };
 }

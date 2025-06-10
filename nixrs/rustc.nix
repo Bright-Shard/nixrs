@@ -8,6 +8,7 @@
   pkgs,
   toJSON,
   addErrorContext,
+  replaceStrings,
   ...
 }:
 
@@ -28,7 +29,7 @@ let
   rustcBaseArgs = [
     src
     "--crate-name"
-    crateName
+    (replaceStrings [ "-" ] [ "_" ] crateName)
     "--crate-type"
     crateType
     "--edition"
@@ -43,9 +44,12 @@ let
     target
   ];
 
-  links = map (cfg: "-L${toString cfg.path}") (filter (cfg: cfg.kind == "link") cfg);
+  links = map (cfg: "-L ${toString cfg.path}") (
+    filter (cfg: cfg.kind == "link" || cfg.kind == "crate") cfg
+  );
+  crates = map (cfg: "--extern ${cfg.name}") (filter (cfg: cfg.kind == "crate") cfg);
 
-  rustcArgs = rustcBaseArgs ++ links;
+  rustcArgs = rustcBaseArgs ++ links ++ crates;
 
   foreignDeps = map (cfg: "${cfg.name}=${toString cfg.path}") (
     filter (cfg: cfg.kind == "foreign") cfg
@@ -77,7 +81,8 @@ addErrorContext "While compiling ${crateName}" (derivation {
   args = [
     "-c"
     ''
-      rustc ${concatStringsSep " " rustcArgs}
+      mkdir $out
+      rustc ${builtins.warn (concatStringsSep " " rustcArgs) (concatStringsSep " " rustcArgs)}
       ${genIf preventToolchainGc "ln -s ${sysroot} $out/toolchain-sysroot"}
       ${genIf (raCfg != null) "echo '${raCfg}' > $out/rust-project.json"}
     ''

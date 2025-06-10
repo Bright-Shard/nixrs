@@ -1,3 +1,4 @@
 .direnv
 **/target
 **/rust-project.json
+bench/**/toolchain-sysroot

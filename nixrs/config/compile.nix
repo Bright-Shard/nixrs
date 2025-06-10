@@ -8,6 +8,7 @@
   config,
   types,
   toString,
+  toPath,
   elem,
   ...
 }:
@@ -15,7 +16,7 @@
 let
   crateStorePath = pkgs.lib.fileset.toSource {
     root = workspaceRoot;
-    fileset = workspaceRoot;
+    fileset = /${workspaceRoot}/src;
   };
   srcRoot =
     if
@@ -29,6 +30,7 @@ let
       "src/main.rs"
     else
       abort "unreachable";
+  # TODO respect workspace setting for enabling this
   raCrate = types.rustAnalyzerCrate.build {
     root_module = srcRoot;
     edition = toString config.edition;
@@ -47,8 +49,8 @@ rustc {
   linkerPath = "${pkgs.gcc}/bin/cc"; # TODO allow custom linkers
   edition = config.edition;
   target = currentSystemRust; # TODO allow overriding
-  src = "${crateStorePath}/${srcRoot}"; # TODO
+  src = toPath "${crateStorePath}/${srcRoot}";
   cfg = dependenciesToCompilationSettings config.dependencies;
-  preventToolchainGc = config.toolchain.prevent-gc;
+  preventToolchainGc = config.workspace.toolchain.prevent-gc;
   raCrates = [ raCrate ]; # TODO dependencies
 }

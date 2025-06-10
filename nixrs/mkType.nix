@@ -43,10 +43,16 @@ let
             schemaField inputField
           else if schemaType == "list" then
             elem inputType schemaField
+          else if schemaType == "string" then
+            inputType == schemaField
           else
-            inputType == schemaField;
+            abort "Unknown schema type `${schemaType}` for field `${field}`";
         validate =
-          field: if !(fieldIsValid field) then abort "mkType: Field `${field}` had the wrong type" else null;
+          field:
+          if !(fieldIsValid field) then
+            abort "mkType: Field `${typeName}.${field}` had the wrong type (type was `${typeOf input.${field}}`)"
+          else
+            null;
       in
 
       addErrorContext "While building type `${typeName}`" (

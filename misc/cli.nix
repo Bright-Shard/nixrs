@@ -6,4 +6,4 @@
   pkgs ? import <nixpkgs> { },
 }:
 
-(import ../nixrs { inherit registries pkgs; }).compileCrate crateRoot
+(import ../nixrs { inherit registries pkgs; }).compileCrate { inherit crateRoot; }
