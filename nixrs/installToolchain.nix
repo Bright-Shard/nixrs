@@ -113,41 +113,62 @@
   attrValues,
   filter,
   elem,
+  nixty,
   ...
 }:
 
-{
-  # The channel to download (stable, beta, nightly)
-  channel,
-  # Optional - download the toolchain published on a specific date
-  # If null, nixrs will install the latest version of that toolchain
-  date ? null,
-  # The target to install the toolchain for
-  target ? currentSystemRust,
-  # Optional - the components profile to install (minimal, default, complete)
-  # If null, no profile will be installed, and only the components in the
-  # components arg will be installed
-  profile ? "default",
-  # Components to install - these are installed in addition to any components
-  # that are installed from the specified profile (if there was one)
-  components ? [ ],
-  # Additional components to install for foreign targets (i.e. not the host
-  # system's target). The format is `<target> = [ "component1" "component2" ]`.
-  #
-  # For example, you could download the standard library for cross compilation
-  # to WASM like so:
-  # ```nix
-  # customTargetComponents = {
-  #   wasm32-unknown-unknown = [ "std" ];
-  # };
-  # ```
-  customTargetComponents ? { },
-}:
+let
+  argsTy =
+    with nixty.prelude;
+    newType {
+      name = "install-toolchain-args";
+      def = {
+        # The channel to download
+        channel = oneOfVal [
+          "stable"
+          "beta"
+          "nightly"
+        ];
+        # Download the toolchain published on a specific date
+        # If null, nixrs will install the latest version of the toolchain
+        date = nullOr str;
+        # The target to install the toolchain for
+        target = withDefault currentSystemRust str;
+        # The components profile to install (minimal, default, complete)
+        # If null, no profile will be installed, and only the components in the
+        # components arg will be installed
+        profile = nullOr (oneOfVal [
+          "minimal"
+          "default"
+          "complete"
+          "nixrs-default"
+        ]);
+        # Components to install - these are installed in addition to any components
+        # that are installed from the specified profile (if there was one)
+        components = withDefault [ ] list;
+        # Additional components to install for foreign targets (i.e. not the host
+        # system's target). The format is `<target> = [ "component1" "component2" ]`.
+        #
+        # For example, you could download the standard library for cross compilation
+        # to WASM like so:
+        # ```nix
+        # customTargetComponents = {
+        #   wasm32-unknown-unknown = [ "std" ];
+        # };
+        # ```
+        customTargetComponents = withDefault { } set;
+      };
+    };
+in
+
+rawArgs:
 
 let
   inherit (lib.trivial) importTOML;
   inherit (pkgs.stdenvNoCC) mkDerivation;
   inherit (pkgs) symlinkJoin;
+
+  args = argsTy rawArgs;
 
   # Additional toolchain profiles nixrs adds. They're meant to be more sensible
   # defaults for nixrs, which doesn't need some components like Cargo.
@@ -162,25 +183,27 @@ let
   };
 
   url =
-    if date == null then
-      "https://static.rust-lang.org/dist/channel-rust-${channel}.toml"
+    if args.date == null then
+      "https://static.rust-lang.org/dist/channel-rust-${args.channel}.toml"
     else
-      "https://static.rust-lang.org/dist/${date}/channel-rust-${channel}.toml";
-  toolchainName = "rust-${channel}${if date != null then "-${date}-" else ""}-toolchain";
+      "https://static.rust-lang.org/dist/${args.date}/channel-rust-${args.channel}.toml";
+  toolchainName = "rust-${args.channel}${
+    if args.date != null then "-${args.date}-" else ""
+  }-toolchain";
   rawCfg = (importTOML (fetchurl url));
   cfg = rawCfg // {
     profiles = rawCfg.profiles // nixrsProfiles;
   };
 
-  componentExistsForHost = component: hasAttr target cfg.pkg.${component}.target;
+  componentExistsForHost = component: hasAttr args.target cfg.pkg.${component}.target;
   hostComponents =
-    if profile == null then
-      components
+    if args.profile == null then
+      args.components
     else
-      components ++ (filter componentExistsForHost cfg.profiles.${profile});
+      args.components ++ (filter componentExistsForHost cfg.profiles.${args.profile});
   # { target-triple = ["component", "component"]; }
-  allComponents = customTargetComponents // {
-    ${target} = hostComponents;
+  allComponents = args.customTargetComponents // {
+    ${args.target} = hostComponents;
   };
 
   # Resolves the component's actual name from the renames table, adds any
@@ -199,12 +222,12 @@ let
           abort "Couldn't find component `${componentNameOrAlias}`.";
       pkg = getAttr componentName cfg.pkg;
       component =
-        if hasAttr target pkg.target then
-          pkg.target.${target}
+        if hasAttr args.target pkg.target then
+          pkg.target.${args.target}
         else if hasAttr "*" pkg.target then
           pkg.target."*"
         else
-          abort "Couldn't install component ${componentNameOrAlias} for target ${target}";
+          abort "Couldn't install component ${componentNameOrAlias} for target ${args.target}";
       deps =
         with pkgs;
         if
@@ -250,7 +273,7 @@ let
             hash = component.xz_hash;
           }
         else
-          abort "The component `${componentName}` isn't available for the target `${target}`.";
+          abort "The component `${componentName}` isn't available for the target `${args.target}`.";
     in
     mkDerivation {
       name = "${toolchainName}-${componentName}-unpack";

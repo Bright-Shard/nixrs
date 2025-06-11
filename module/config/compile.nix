@@ -31,7 +31,7 @@ let
     else
       abort "unreachable";
   # TODO respect workspace setting for enabling this
-  raCrate = types.rustAnalyzerCrate.build {
+  raCrate = types.rustAnalyzerCrate {
     root_module = srcRoot;
     edition = toString config.edition;
     deps = [ ]; # TODO

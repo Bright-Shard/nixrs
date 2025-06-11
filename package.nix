@@ -10,5 +10,7 @@ stdenvNoCC.mkDerivation {
     mv bin $out/bin
     mv misc $out
     mv nixrs $out
+    mv module $out
+    mv nixty $out
   '';
 }

@@ -9,71 +9,102 @@
   toJSON,
   addErrorContext,
   replaceStrings,
+  VALID_RUST_EDITIONS,
+  nixty,
+  types,
   ...
 }:
 
-{
-  crateName, # str: name of crate to compile
-  crateType, # str<one of rustc crate types>: Type of crate to compile
-  sysroot, # path: path to the sysroot of the Rust toolchain to compile with
-  linkerPath, # path: path to the linker to use
-  edition, # int<one of valid Rust editions>: Rust edition to compile with
-  target, # str: target triple to compile for
-  src, # path: nix store path to the crate's main file (e.g. main.rs, lib.rs)
-  cfg, # [compilationSetting]: extra compilation settings to pass to rustc
-  preventToolchainGc, # bool: add a symlink to the toolchain so it isn't gc'd
-  raCrates ? null, # null or [rustAnalyzerCrate]: if !null, used to make RA cfg
-}:
+let
+  argsTy =
+    with nixty.prelude;
+    newType {
+      name = "rustc-args";
+      def = {
+        # Name of the crate t ocompile
+        crateName = str;
+        # Type of crate to compile
+        crateType = oneOfVal [
+          "bin"
+          "lib"
+          "rlib"
+          "dylib"
+          "cdylib"
+          "staticlib"
+          "proc-macro"
+        ];
+        # Path to the current toolchain's sysroot
+        sysroot = path;
+        # Path to the linker to use
+        linkerPath = path;
+        # Rust edition to build with
+        edition = oneOfVal VALID_RUST_EDITIONS;
+        # target triple to compile for
+        target = str;
+        # Path to the crate's main file (e.g. main.rs or lib.rs)
+        src = path;
+        # Extra compilation settings to pass to rustc; see compilationSetting
+        cfg = listOf types.compilationSetting;
+        # Add a symlink to the toolchain sysroot so it doesn't get gc'd
+        preventToolchainGc = bool;
+        # If not null, crates to add to the rust-analyzer config
+        raCrates = nullOr (listOf types.rustAnalyzerCrate);
+      };
+    };
+in
+
+rawArgs:
 
 let
+  args = argsTy rawArgs;
   rustcBaseArgs = [
-    src
+    args.src
     "--crate-name"
-    (replaceStrings [ "-" ] [ "_" ] crateName)
+    (replaceStrings [ "-" ] [ "_" ] args.crateName)
     "--crate-type"
-    crateType
+    args.crateType
     "--edition"
-    (toString edition)
+    (toString args.edition)
     "-C"
-    "linker=${linkerPath}"
+    "linker=${args.linkerPath}"
     "--out-dir"
     "$out"
     "--sysroot"
-    sysroot
+    args.sysroot
     "--target"
-    target
+    args.target
   ];
 
   links = map (cfg: "-L ${toString cfg.path}") (
-    filter (cfg: cfg.kind == "link" || cfg.kind == "crate") cfg
+    filter (cfg: cfg.kind == "link" || cfg.kind == "crate") args.cfg
   );
-  crates = map (cfg: "--extern ${cfg.name}") (filter (cfg: cfg.kind == "crate") cfg);
+  crates = map (cfg: "--extern ${cfg.name}") (filter (cfg: cfg.kind == "crate") args.cfg);
 
   rustcArgs = rustcBaseArgs ++ links ++ crates;
 
   foreignDeps = map (cfg: "${cfg.name}=${toString cfg.path}") (
-    filter (cfg: cfg.kind == "foreign") cfg
+    filter (cfg: cfg.kind == "foreign") args.cfg
   );
   basePath = [
-    "${sysroot}/bin"
+    "${args.sysroot}/bin"
     "${pkgs.coreutils}/bin"
   ];
-  additionalPath = map (cfg: cfg.path) (filter (cfg: cfg.kind == "path") cfg);
+  additionalPath = map (cfg: cfg.path) (filter (cfg: cfg.kind == "path") args.cfg);
   path = basePath ++ additionalPath;
 
   raCfg =
-    if raCrates == null then
+    if args.raCrates == null then
       null
     else
       toJSON {
-        inherit sysroot;
-        crates = raCrates;
+        inherit (args) sysroot;
+        crates = args.raCrates;
       };
 
   genIf = flag: string: if flag then string else "";
 in
-addErrorContext "While compiling ${crateName}" (derivation {
-  name = crateName;
+addErrorContext "While compiling ${args.crateName}" (derivation {
+  name = args.crateName;
   # TODO: Some crates may only support some systems, should maybe set that here
   system = builtins.currentSystem;
   builder = "${pkgs.bash}/bin/bash";
@@ -82,8 +113,8 @@ addErrorContext "While compiling ${crateName}" (derivation {
     "-c"
     ''
       mkdir $out
-      rustc ${builtins.warn (concatStringsSep " " rustcArgs) (concatStringsSep " " rustcArgs)}
-      ${genIf preventToolchainGc "ln -s ${sysroot} $out/toolchain-sysroot"}
+      rustc ${concatStringsSep " " rustcArgs}
+      ${genIf args.preventToolchainGc "ln -s ${args.sysroot} $out/toolchain-sysroot"}
       ${genIf (raCfg != null) "echo '${raCfg}' > $out/rust-project.json"}
     ''
   ];

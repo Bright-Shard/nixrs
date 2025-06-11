@@ -1,4 +1,4 @@
 let
   pkgs = import <nixpkgs> { };
 in
-pkgs.callPackage ./install.nix { }
+pkgs.callPackage ./package.nix { }

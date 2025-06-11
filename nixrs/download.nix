@@ -7,28 +7,41 @@
   currentSystem,
   pkgs,
   placeholder,
+  nixty,
   ...
 }:
 
-{
-  # File to download
-  url,
-  # sha-256 hash of the downloaded file
-  hash,
-  # Derivation name, `-download` will be appended
-  name,
-}:
+let
+  argsTy =
+    with nixty.prelude;
+    newType {
+      name = "download-args";
+      def = {
+        # File to download
+        url = str;
+        # sha-256 hash of the downloaded file
+        hash = str;
+        # Derivation name, `-download` will be appended
+        name = str;
+      };
+    };
+in
+
+rawArgs:
+let
+  args = argsTy rawArgs;
+in
 
 derivation {
-  name = "${name}-download";
+  name = "${args.name}-download";
   system = currentSystem;
   builder = "${pkgs.curl}/bin/curl";
   args = [
     "-o"
     (placeholder "out")
-    url
+    args.url
   ];
   outputHashMode = "flat";
   outputHashAlgo = "sha256";
-  outputHash = hash;
+  outputHash = args.hash;
 }

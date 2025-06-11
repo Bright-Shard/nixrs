@@ -1,2 +1,4 @@
 { compileCrate, warn, ... }:
-warn "This message appears because the custom build file is running!" compileCrate ./actual-crate
+warn "This message appears because the custom build file is running!" compileCrate {
+  crateRoot = ./actual-crate;
+}

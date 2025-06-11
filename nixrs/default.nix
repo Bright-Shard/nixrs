@@ -13,14 +13,13 @@ let
     inherit pkgs;
     lib = pkgs.lib;
     inherit registries;
+    nixty = import ../nixty;
 
     #
-    # nixrs internal type system
+    # nixrs' custom nixty types
     #
 
-    # Function for defining a new type.
-    mkType = import ./mkType.nix nixrs;
-    # A set of all the types nixrs defines.
+    # A set of every nixty type nixrs uses.
     types = listToAttrs (
       map (
         file:
@@ -28,7 +27,7 @@ let
           type = import ./types/${file} nixrs;
         in
         {
-          name = type.typeName;
+          name = type.__nixty;
           value = type;
         }
       ) (attrNames (readDir ./types))
@@ -67,10 +66,7 @@ let
     # that `crate.nix` is inside). This is because the module needs to know
     # where the Rust code is in order to set proper default settings and
     # compile the code.
-    #
-    # This function returns the `nixrs` set with the additional keys defined in
-    # `nixrsModule` below.
-    withModule = nixrsModule;
+    withModule = import ../module;
     # All the Rust editions that have been published to date.
     VALID_RUST_EDITIONS = [
       2015
@@ -84,51 +80,5 @@ let
     # Can install with `pkgs.callPackage nixrs.package {}`
     package = import ../package.nix;
   };
-  nixrsModule =
-    workspaceRoot: module:
-    assert builtins.elem (builtins.typeOf workspaceRoot) [
-      "string"
-      "path"
-    ];
-    assert builtins.typeOf module == "set";
-    let
-      nixrsWithModule =
-        nixrs
-        // (
-          let
-            nixrs = nixrsWithModule;
-          in
-          {
-            inherit nixrs;
-            inherit workspaceRoot;
-            inherit (module) config;
-
-            # Custom option types used by the nixrs Nix Module.
-            optionTypes = import ./moduleOptionTypes.nix nixrs;
-            # The actual Nix module. Can be imported as a submodule.
-            module = import ./module nixrs;
-            # Path to the toolchain installed by nixrs
-            toolchain = nixrs.installToolchain {
-              inherit (module.config.workspace.toolchain)
-                channel
-                date
-                profile
-                components
-                ;
-              customTargetComponents = module.config.workspace.toolchain.custom-target-components;
-            };
-            # Takes a Nix module that sets nixrs' options, then
-            # compiles the Rust project accordingly with nixrs' API.
-            compileModule = import ./config/compile.nix nixrs;
-            # Packages to add to a devshell for a nixrs project.
-            shellPackages = import ./config/shellPackages.nix nixrs;
-            # Converts an attribute set of dependencies to a list of
-            # compilation settings.
-            dependenciesToCompilationSettings = import ./config/depsToCompSettings.nix nixrs;
-          }
-        );
-    in
-    nixrsWithModule;
-
 in
 nixrs

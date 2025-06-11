@@ -13,11 +13,11 @@
 }:
 
 let
-  inherit (types) compilationSetting remoteCrate crateVersion;
+  inherit (types) compilationSetting crateVersion;
   fetchAndCompileCrate =
     crate:
     compileCrate {
-      crateRoot = fetchCrate (remoteCrate.build crate);
+      crateRoot = fetchCrate crate;
       workspaceCfg = config.workspace;
     };
 in
@@ -91,7 +91,7 @@ map (
       else
         abort "Unreachable";
   in
-  compilationSetting.build {
+  compilationSetting {
     name = depName;
     kind = kindAndPath.kind;
     path = kindAndPath.path;

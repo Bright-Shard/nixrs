@@ -2,7 +2,7 @@
 
 {
   registries,
-  types,
+  nixty,
   stringLength,
   substring,
   hasAttr,
@@ -13,21 +13,36 @@
   filter,
   typeOf,
   fromJSON,
+  types,
   ...
 }:
 
 let
-  inherit (types) remoteCrate;
+  argsTy =
+    with nixty.prelude;
+    newType {
+      name = "fetch-crate-args";
+      def = {
+        # The name of the crate.
+        name = str;
+        # The registry to download the crate from.
+        registry = str;
+        # The version of the crate to download.
+        version = types.crateVersion;
+      };
+    };
 in
 
-crate:
-addErrorContext "While downloading the crate `${crate.name}`" (
-  assert remoteCrate.isType crate;
-  if !(hasAttr crate.registry registries) then
-    abort "Crate needs to be downloaded from the registry `${crate.registry}`, but no index for this registry was passed to nixrs"
+argsRaw:
+let
+  args = argsTy argsRaw;
+in
+addErrorContext "While downloading the crate `${args.name}`" (
+  if !(hasAttr args.registry registries) then
+    abort "Crate needs to be downloaded from the registry `${args.registry}`, but no index for this registry was passed to nixrs"
   else
     let
-      registry = registries.${crate.registry};
+      registry = registries.${args.registry};
       # TODO: Nix string operations run off of bytes, so this will break for any
       # multi-byte UTF-8 characters (i.e. stringLength returns the number of
       # bytes, not the number of characters). Nix doesn't have any built-in
@@ -37,16 +52,16 @@ addErrorContext "While downloading the crate `${crate.name}`" (
       #
       # This issue is fine for crates.io because crates.io only allows ASCII
       # crate names.
-      nameLen = stringLength crate.name;
+      nameLen = stringLength args.name;
       path =
         if nameLen == 1 then
-          /${registry}/1/${crate.name}
+          /${registry}/1/${args.name}
         else if nameLen == 2 then
-          /${registry}/2/${crate.name}
+          /${registry}/2/${args.name}
         else if nameLen == 3 then
-          /${registry}/3/${substring 0 1 crate.name}/${crate.name}
+          /${registry}/3/${substring 0 1 args.name}/${args.name}
         else
-          /${registry}/${substring 0 2 crate.name}/${substring 2 2 crate.name}/${crate.name};
+          /${registry}/${substring 0 2 args.name}/${substring 2 2 args.name}/${args.name};
       allCrateVersions = map (val: fromJSON val) (
         filter (val: typeOf val == "string" && val != "") (split "\n" (readFile path))
       );

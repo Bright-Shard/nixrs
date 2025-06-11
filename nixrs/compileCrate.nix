@@ -3,43 +3,60 @@
   nixrs,
   pkgs,
   lib,
+  nixty,
   ...
 }:
 
-{
-  crateRoot,
-  workspaceCfg ? null,
-}:
 let
-  crateDir = readDir crateRoot;
+  argsTy =
+    with nixty.prelude;
+    newType {
+      name = "compile-crate-args";
+      def = {
+        crateRoot = oneOfTy [
+          path
+          str
+        ];
+        workspaceCfg = nullOr set;
+      };
+    };
+in
+
+argsRaw:
+let
+  args = argsTy argsRaw;
+  crateDir = readDir args.crateRoot;
 in
 if crateDir ? "build.nix" then
-  import "${crateRoot}/build.nix" nixrs
+  import "${args.crateRoot}/build.nix" nixrs
 else if crateDir ? "crate.nix" then
   let
     moduleRaw = lib.evalModules {
       modules = [
         nixrsWithModule.module
-        "${crateRoot}/crate.nix"
+        "${args.crateRoot}/crate.nix"
       ];
       specialArgs = {
         inherit pkgs lib nixrs;
       };
     };
     module =
-      if workspaceCfg != null then
+      if args.workspaceCfg != null then
         moduleRaw
         // {
           config = moduleRaw.config // {
-            workspace = workspaceCfg;
+            workspace = args.workspaceCfg;
           };
         }
       else
         moduleRaw;
-    nixrsWithModule = nixrs.withModule crateRoot module;
+    nixrsWithModule = nixrs.withModule {
+      workspaceRoot = args.crateRoot;
+      inherit module nixrs;
+    };
   in
   nixrsWithModule.compileModule
 else if crateDir ? "Cargo.toml" then
   abort "TODO: Compile Cargo crate"
 else
-  abort "Dependency at `${crateRoot}` is supposed to be a crate, but it doesn't have a `Cargo.toml` file nor a `crate.nix` file."
+  abort "Dependency at `${args.crateRoot}` is supposed to be a crate, but it doesn't have a `Cargo.toml` file nor a `crate.nix` file."

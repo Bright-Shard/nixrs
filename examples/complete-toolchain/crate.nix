@@ -4,7 +4,7 @@
   version = "0.0.0";
   edition = 2024;
 
-  toolchain = {
+  workspace.toolchain = {
     channel = "nightly";
     profile = "complete";
   };
