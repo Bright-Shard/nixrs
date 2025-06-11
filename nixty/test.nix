@@ -37,7 +37,7 @@ assert (
     str
   ]);
   assert
-    !(isType 1 (oneOfType [
+    !(isType 1 (oneOfTy [
       bool
       str
     ]));
