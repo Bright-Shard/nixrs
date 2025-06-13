@@ -175,6 +175,7 @@ let
   nixrsProfiles = {
     nixrs-default = [
       "rustc"
+      "rust-src"
       "rust-std"
       "rust-docs"
       "rustfmt-preview"
@@ -195,7 +196,9 @@ let
     profiles = rawCfg.profiles // nixrsProfiles;
   };
 
-  componentExistsForHost = component: hasAttr args.target cfg.pkg.${component}.target;
+  componentExistsForHost =
+    component:
+    hasAttr args.target cfg.pkg.${component}.target || hasAttr "*" cfg.pkg.${component}.target;
   hostComponents =
     if args.profile == null then
       args.components

@@ -98,6 +98,7 @@ let
     else
       toJSON {
         inherit (args) sysroot;
+        sysroot_src = "${args.sysroot}/lib/rustlib/src/rust/library";
         crates = args.raCrates;
       };
 
@@ -112,6 +113,7 @@ addErrorContext "While compiling ${args.crateName}" (derivation {
   args = [
     "-c"
     ''
+      set -e
       mkdir $out
       rustc ${concatStringsSep " " rustcArgs}
       ${genIf args.preventToolchainGc "ln -s ${args.sysroot} $out/toolchain-sysroot"}

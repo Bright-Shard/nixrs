@@ -22,16 +22,14 @@
 
 Basically CLI improvements, supporting dependencies, workspaces, and more compilation options
 
--[ ] Command for running binary crates
--[ ] Command for building & running a test harness
--[ ] Code dependencies
+-[ ] Dependencies
 	- There will be multiple types of dependencies nixrs needs to handle.
 	-[ ] Rust dependencies
 		- Need to build dependency tree, then go through and make a flat list of dependencies with unified features and versions
 		-[ ] Need to allow downloading from common sources:
 			-[ ] crates.io @ Rust version requirement
 			-[x] Allow arbitrary dependencies in the Nix store
-		-[ ] Determine if dependency is based in Cargo or nixrs
+		-[x] Determine if dependency is based in Cargo or nixrs
 			-[ ] For nixrs dependencies, recursively add sub-dependencies to dependency tree
 				-[ ] Cyclical dependency detection: If current crate is already in the dependency tree, in one straight branch to the root of the tree, error
 		-[ ] Flatten dependency tree into dependency list
@@ -45,10 +43,12 @@ Basically CLI improvements, supporting dependencies, workspaces, and more compil
 		-[x] Need to allow linking to libraries in the Nix store
 		-[ ] Investiage why Cargo has link restrictions & see if nixrs needs them too (Cargo doesn't allow multiple crates to link to the same static library)
 			- https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key
-	-[ ] Make sure build files for dependencies aren't gc'd
+	-[x] Make sure build files for dependencies aren't gc'd
 -[ ] Binary dependencies
-	-[ ] Should integrate with direnv/shell.nix to allow specifying binary dependencies needed for developing in the workspace
-	-[ ] Should make those dependencies available to build.rs/postbuild.rs
+	-[ ] Integrate with direnv and shell.nix:
+		-[x] Make the Rust toolchain available to the nix shell
+		-[ ] Make binary dependencies available to the nix shell
+	-[ ] Make these dependencies available to build.rs/postbuild.rs
 -[ ] Compilation options
 	-[ ] Custom linkers (e.g. mold)
 	-[ ] Support codegen options (rustc -C help to see options)
@@ -62,15 +62,22 @@ Basically CLI improvements, supporting dependencies, workspaces, and more compil
 	-[ ] Override dependencies
 	-[ ] Specify target to build for, optimisation level, debug assertions, etc
 	-[ ] Lint options
--[ ] Currently the CLI stops looking for crate.nix files on the first one it finds. It should keep searching to look for a workspace outside of the crate.
-	-[ ] If it finds a workspace, need to load settings from it
-	-[ ] If it finds a workspace, need to use workspace target dir instead of crate target dir
 -[ ] Custom CLI subcommands
 -[ ] rust-analyzer integration
 	- https://rust-analyzer.github.io/book/configuration.html
+	-[x] Generate basic rust-analyzer config
+	-[ ] Get compilation
 	-[ ] Allow specifying a workspace preset for rust-analyzer to use
+	-[x] Check if rust-analyzer auto-reloads rust-project.json
+		- It does! :D
 -[ ] Cargo integration: Generate a Cargo.toml for a crate, allowing workspaces to use nixrs but one (or more) crates from that workspace to be published on crates.io
 -[ ] Targets
 	- Rename to "outputs" so they're not confused with target triples?
 	- https://doc.rust-lang.org/cargo/reference/cargo-targets.html
--[ ] Make sure help menu prints in 2 columns
+-[ ] CLI improvements
+	-[ ] Finish bscli
+	-[ ] Rewrite the Bash CLI in Rust with bscli
+	-[ ] Currently the CLI stops looking for crate.nix files on the first one it finds. It should keep searching to look for a workspace outside of the crate.
+		-[ ] If it finds a workspace, need to load settings from it
+		-[ ] If it finds a workspace, need to use workspace target dir instead of crate target dir
+-[ ] Optimise `installToolchain.nix`

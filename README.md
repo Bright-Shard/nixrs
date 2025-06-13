@@ -1,41 +1,53 @@
 # nixrs - fearless dependencies for Rust
 
-nixrs is a build system for Rust that uses the [Nix programming language](https://nixos.org). It is a direct replacement for Cargo - for example, crates are declared in a `crate.nix` file, not `Cargo.toml` - but can still integrate with Cargo projects.
-
-The goal of nixrs is to bring Nix's reproducable builds to Rust. All dependencies - from crates on crates.io, to static C libraries a Rust project links with, to CLI tools your project needs for development - can be managed with nixrs. Thus, other
-
-> **DISCLAIMER:**
+> **WIP Disclaimer**
 >
-> nixrs is *heavily* work-in-progress. The below README is the end goal for the project, but currently only a fraction of those features are actually implemented.
+> nixrs is very much work-in-progress. It is probably not yet suitable for your project and needs a couple more weeks to cook. There's a current limitations list at the bottom of this README with the most egregious missing features.
 >
-> You can see examples where I test nixrs in the `examples/` folder, and the project's massive todo list in [`planning.md`](planning.md).
+> This README is written as if nixrs is completed. Some of the features it advertises may not be implemented yet.
+
+nixrs is a build system for Rust powered by [Nix](https://nixos.org). It is a direct replacement for Cargo - for example, crates are declared in a `crate.nix` file, not `Cargo.toml` - but nixrs can still integrate with Cargo projects.
+
+> **Platform Support**
 >
-> **To be perfectly clear, nixrs is probably not ready for you to use in its current state**. See the "current limitations" list at the bottom for a list of major missing features.
+> Let's just get this out of the way - the Nix package manager can only be installed on Unix systems (e.g. Linux and macOS). Windows cannot natively run nixrs. You'll have to run nixrs through WSL (see, for example, [NixOS-WSL](https://github.com/nix-community/NixOS-WSL)). You could also do yourself a favor and make the switch to Linux ;)
+
+nixrs intends to provide all of the features offered today by Cargo and Rustup, plus complete dependency management for projects and guaranteed reproducible builds. The dream of nixrs is that a developer can simply open a project and have every tool they need ready to go OOTB.
 
 
 
-# Cargo compatibility
+# Complete Dependency Management
 
-nixrs crates can depend on normal Cargo projects, so any existing crate on crates.io can be added as a dependency just like with Cargo. nixrs also has a `cargo-compatibility` option that, when enabled, will cause nixrs to generate a `Cargo.toml` file for your crate.
+Cargo allows you to specify dependencies, but it only considers one kind of dependency: The Rust crates your code needs to build and run. There's many other kinds of dependencies that your project probably uses today - for example:
 
-However, nixrs has some features Cargo does not (these additional features are discussed below). Obviously, these features cannot be translated into `Cargo.toml` - so when `cargo-compatibility` is enabled, you won't be able to use these nixrs features, and nixrs will error if you attempt to do so.
+- A specific C library your code needs to link against
+- Dedicated CLI tools - the Tauri CLI, wasm-bindgen CLI, dioxus CLI, etc.
+- Custom internal tooling, such as linters or CLIs for running your test suite
+- A specific Rust version or toolchain, with support for specific targets (e.g. wasm) or features (e.g. miri)
 
-> Note: cargo-compatibility is current not implemented.
+In traditional Cargo-based codebases, all of the above dependencies have to be installed manually by developers outside of Cargo (though there may be programs to help with this, e.g. rustup). In nixrs, all of these dependencies and more can be specified declaratively.
+
+Dependencies are also installed per-project, meaning that two projects can use two different versions of `wasm-bindgen-cli` or other software with no issue.
 
 
 
-# When/Why should I use this?
+# Reproducible Builds
 
-nixrs isn't always compatible with Cargo, so some nixrs crates can't be published on crates.io. Therefore, nixrs is probably a bad idea for libraries.
+In Cargo projects today, there are a plethora of reasons why a project might build on one developer's machine, but not yours:
 
-nixrs is largely intended for large programs written in Rust that need more flexibility than Cargo can provide. nixrs offers all of the same features Cargo offers, and adds the following:
+- You installed the wrong Rust version, or haven't updated it in a while so now it's missing features.
+- You didn't install some C library that a crate links against in its `build.rs`.
+- You have the wrong version of a CLI like `wasm-bindgen` installed.
 
-- **Dependencies Beyond crates.io**: Because nixrs is based on Nix, you can specify any code as a dependency - regardless of how it's hosted (crates.io, GitHub, a zip file, etc.) or what language it's written in.
-- **Development Dependencies**: Many large-scale projects require third-party linters, build tools, or runtimes for development. For example, my operating system [bs](https://github.com/bright-shard/bs) requires QEMU to test the OS during development. Other large scale projects may even have internal CLIs dedicated for their specific codebase. nixrs allows you to specify any binary as a dependency, so every developer has the tooling they need OOTB.
-- **Toolchain Management**: Manage your Rust version, edition, targets, and components from directly within nixrs. No need to manage Cargo and Rustup separately. This ensures all maintainers use the same Rust version, without even having to think about installing it.
-- **Reliable Builds**: nixrs makes the same reproducable build guarantees that you'd expect from any Nix package. Dependencies that build on one computer will build on all computers (unless, of course, a crate explicitly doesn't support certain OSes/architectures).
-- **rust-analyzer Support**: You can configure rust-analyzer from directly within nixrs. Those settings will load regardless of what IDE you and your collaborators use.
-- **...and more**: post-build scripts, direnv integration, built-in support for linker scripts, and many other features that'd take too long to list here.
+Notice how all of these errors stem from dependencies that Cargo doesn't handle. Because nixrs has complete dependency management, down to the patch version of `wasm-bindgen-cli`, it prevents this entire class of compilation errors. No need to set up a developer environment or figure out what packages you're missing to start working on a project - just build your project with nixrs, and it takes care of everything.
+
+
+
+# Cargo Compatibility
+
+> Note: The features described in this section are not yet implemented. This is the goal for nixrs before it's ready to release.
+
+nixrs crates can depend on normal Cargo projects, so any existing crate on crates.io can be added as a dependency just like with Cargo. nixrs also has a `cargo-compatibility` option that, when enabled, will cause nixrs to generate a `Cargo.toml` file for your crate. Keep in mind that nixrs has many features Cargo does not, and these features cannot be translated into a `Cargo.toml`.
 
 
 
@@ -116,9 +128,14 @@ There aren't many docs written for the nixrs API outside of the nixrs source cod
 
 # Current Limitations
 
-- (wip) nixrs doesn't support dependencies
-- (wip) nixrs doesn't integrate with rust-analyzer
+- (wip) nixrs doesn't support depending on Cargo crates
+- (wip) nixrs doesn't integrate well with rust-analyzer
+	- features specific to rust-analyzer work (e.g. docs on hover, jump to source)
+	- compiler features do not (e.g. most compilation warnings/errors)
+- nixrs doesn't support crate features
+- nixrs cannot download crates from crates.io
 - the nixrs CLI doesn't accept flags for running unit tests or building in release mode
+	- The current CLI is written in Bash and just doesn't work well; I'm working on my own CLI library for Rust and will rewrite the CLI once it's completed
 - nixrs doesn't have any form of workspaces
 - nixrs lacks a lot of compilation options that Cargo has
 - miri requires special sysroot settings and tries to manage dependencies on its own. As such I haven't yet figured out how to get it to run in a nixrs project.

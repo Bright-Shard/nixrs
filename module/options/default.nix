@@ -3,6 +3,8 @@
   VALID_RUST_EDITIONS,
   optionTypes,
   nixrs,
+  readDir,
+  workspaceRoot,
   ...
 }:
 
@@ -43,7 +45,11 @@ in
         "lib"
         "proc-macro"
       ];
-      default = "bin";
+      default =
+        if (readDir workspaceRoot) ? "src" && (readDir "${workspaceRoot}/src") ? "lib.rs" then
+          "lib"
+        else
+          "bin";
     };
 
     edition = mkOption {
