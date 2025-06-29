@@ -1,26 +1,32 @@
 {
   nixrs ? import ../nixrs { },
-  workspaceRoot,
+  crate-root,
+  is-workspace-root ? false,
   module,
 }:
+
 let
-  nixrsWithModule =
+  nixrs-with-module =
     nixrs
     // (
       let
-        nixrs = nixrsWithModule;
+        nixrs = nixrs-with-module;
       in
       {
         inherit nixrs;
-        inherit workspaceRoot;
-        inherit (module) config;
+
+        # Information about the crate specified in this Nix Module.
+        CRATE-INFO = {
+          inherit (module) config;
+          inherit is-workspace-root crate-root;
+        };
 
         # Custom option types used by the nixrs Nix Module.
-        optionTypes = import ./types.nix nixrs;
+        option-types = import ./types.nix nixrs;
         # The actual Nix module. Can be imported as a submodule.
         module = import ./options nixrs;
         # Path to the toolchain installed by nixrs
-        toolchain = nixrs.installToolchain {
+        toolchain = nixrs.install-toolchain {
           inherit (module.config.workspace.toolchain)
             channel
             date
@@ -31,13 +37,11 @@ let
         };
         # Takes a Nix module that sets nixrs' options, then
         # compiles the Rust project accordingly with nixrs' API.
-        compileModule = import ./config/compile.nix nixrs;
+        compile-module = import ./config/compile.nix nixrs;
         # Packages to add to a devshell for a nixrs project.
-        shellPackages = import ./config/shellPackages.nix nixrs;
-        # Converts an attribute set of dependencies to a list of
-        # compilation settings.
-        dependenciesToCompilationSettings = import ./config/depsToCompSettings.nix nixrs;
+        shell-packages = import ./config/shell-packages.nix nixrs;
       }
     );
 in
-nixrsWithModule
+
+nixrs-with-module

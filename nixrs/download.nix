@@ -12,7 +12,7 @@
 }:
 
 let
-  argsTy =
+  args-ty =
     with nixty.prelude;
     newType {
       name = "download-args";
@@ -27,9 +27,9 @@ let
     };
 in
 
-rawArgs:
+args-raw:
 let
-  args = argsTy rawArgs;
+  args = args-ty args-raw;
 in
 
 derivation {

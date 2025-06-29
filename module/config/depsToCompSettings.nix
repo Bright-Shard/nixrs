@@ -7,7 +7,6 @@
   fetchCrate,
   elem,
   config,
-  toString,
   replaceStrings,
   ...
 }:
@@ -53,14 +52,9 @@ map (
               kind = dep.kind;
               path = dep.source;
             }
-        else if
-          elem dep.kind [
-            "binary"
-            "crate"
-          ]
-        then
+        else
           let
-            path =
+            compiled =
               if dep.source != null then
                 compileCrate {
                   crateRoot = dep.source;
@@ -74,27 +68,28 @@ map (
                 }
               else
                 abort "Dependency `${depNameRaw}` must have `source` or `version` set";
-            kind =
-              if dep.kind == "crate" then
-                "crate"
-              else if dep.kind == "binary" then
-                "path"
-              else
-                abort "Unreachable";
           in
-          {
-            inherit kind;
-            path = toString path;
-          }
-        else
-          abort "Unreachable"
+          if dep.kind == "binary" then
+            {
+              kind = "path";
+              path = compiled.drv;
+            }
+          else if dep.kind == "crate" then
+            {
+              kind = "crate";
+              path = compiled.drv;
+              crate = compiled;
+            }
+          else
+            abort "Unreachable"
       else
         abort "Unreachable";
   in
-  compilationSetting {
-    name = depName;
-    kind = kindAndPath.kind;
-    path = kindAndPath.path;
-  }
+  compilationSetting (
+    kindAndPath
+    // {
+      name = depName;
+    }
+  )
 
 ) (attrNames deps)

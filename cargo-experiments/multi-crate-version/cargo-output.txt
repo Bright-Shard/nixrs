@@ -1,0 +1,38 @@
+   Compiling boml v0.3.1
+   Compiling boml v1.0.2
+     Running `/home/bs/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name boml --edition=2021 /home/bs/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/boml-0.3.1/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --diagnostic-width=281 --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=6ed470f7512f2998 -C extra-filename=-78c8c5f2d4d8a802 --out-dir /home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps -L dependency=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps --cap-lints allow -C link-arg=-fuse-ld=mold`
+     Running `/home/bs/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name boml --edition=2021 /home/bs/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/boml-1.0.2/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --diagnostic-width=281 --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --cfg 'feature="default"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("chrono", "default"))' -C metadata=c8665e7933f37701 -C extra-filename=-08670435b13ae72e --out-dir /home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps -L dependency=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps --cap-lints allow -C link-arg=-fuse-ld=mold`
+   Compiling boml-03 v0.1.0 (/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/boml-03)
+     Running `/home/bs/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name boml_03 --edition=2024 boml-03/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --diagnostic-width=281 --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=7f24913ecb833e4e -C extra-filename=-4f0d7c0849d20bf1 --out-dir /home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps -C incremental=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/incremental -L dependency=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps --extern boml=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps/libboml-78c8c5f2d4d8a802.rmeta -C link-arg=-fuse-ld=mold`
+warning: function `main` is never used
+ --> boml-03/src/lib.rs:1:4
+  |
+1 | fn main() {
+  |    ^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+   Compiling boml-1 v0.1.0 (/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/boml-1)
+     Running `/home/bs/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name boml_1 --edition=2024 boml-1/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --diagnostic-width=281 --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=fd774b2d9570432f -C extra-filename=-63ac9761f1871dc7 --out-dir /home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps -C incremental=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/incremental -L dependency=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps --extern boml=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps/libboml-08670435b13ae72e.rmeta -C link-arg=-fuse-ld=mold`
+warning: function `main` is never used
+ --> boml-1/src/lib.rs:1:4
+  |
+1 | fn main() {
+  |    ^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+   Compiling multi-crate-version v0.1.0 (/home/bs/dev/nixrs/cargo-experiments/multi-crate-version)
+     Running `/home/bs/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name multi_crate_version --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --diagnostic-width=281 --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=a557cb2ef4284fdd -C extra-filename=-98161e7fafab53a3 --out-dir /home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps -C incremental=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/incremental -L dependency=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps --extern boml_03=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps/libboml_03-4f0d7c0849d20bf1.rmeta --extern boml_1=/home/bs/dev/nixrs/cargo-experiments/multi-crate-version/target/debug/deps/libboml_1-63ac9761f1871dc7.rmeta -C link-arg=-fuse-ld=mold`
+warning: `boml-1` (lib) generated 1 warning
+warning: `boml-03` (lib) generated 1 warning
+warning: function `main` is never used
+ --> src/lib.rs:1:4
+  |
+1 | fn main() {
+  |    ^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `multi-crate-version` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s

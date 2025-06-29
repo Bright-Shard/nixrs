@@ -1,6 +1,6 @@
-# nixty schema
+# Nixty schema
 #
-# There are two kinds of nixty values: Types, and type instances. Types are the
+# There are two kinds of Nixty values: Types, and type instances. Types are the
 # actual definitions of a type that can be built. Type instances are
 # type-checked values that follow a type.
 #
@@ -8,14 +8,15 @@
 # built-in Nix types, like string, int, etc. User types are sets with specific
 # required fields. So, user types are sets while primitives are other values.
 #
-# Type instances follow this schema:
+# Type instances have all of these fields:
 # {
 #   __nixty: str, # name of the type this is an instance of
 #   __nixty_meta: set, # stores the type this instance was created from
+#   __nixty_strip: set, # returns the instance with all Nixty fields removed
 #   ... # all the appropriate fields for this type
 # }
 #
-# User types follow this schema:
+# User types have all of these fields:
 # {
 #   __nixty: str, # name of this type
 #   __nixty_type = null, # marker field, only present for primitives & types
@@ -33,11 +34,14 @@ let
   inherit (builtins)
     typeOf
     elem
+    elemAt
+    length
     all
     any
+    tryEval
     attrNames
+    intersectAttrs
     addErrorContext
-    seq
     deepSeq
     mapAttrs
     toJSON
@@ -45,79 +49,101 @@ let
     ;
 in
 rec {
-  # Everything you need to use nixty.
+  # Everything you need to use Nixty.
   prelude = primitives // {
     inherit isType newType;
   };
 
-  # Simple function to get the nixty type of a value, falling back to the
-  # built-in typeOf function if the value isn't a nixty type.
+  # Simple function to get the Nixty type of a value, falling back to the
+  # built-in typeOf function if the value isn't a Nixty type.
   type = val: if val ? __nixty then val.__nixty else typeOf val;
-  # Test if a value is an instance of a type.
+  # Test if a value is an instance of a Nixty type. This function will throw
+  # an error if the value passed for the type argument is not a Nixty type.
   isType =
     val: ty:
     let
       isPrim = ty ? __nixty_primitive;
     in
-    if isPrim then
-      ty.__nixty_check val
+    if !(ty ? __nixty_type) then
+      throw "Nixty.isType: The type argument is not a Nixty type. Nixty cannot type-check against it."
     else if val ? __nixty then
-      val.__nixty == ty.__nixty
+      (val.__nixty == ty.__nixty)
+    else if isPrim then
+      (ty.__nixty_check val)
     else if typeOf val == "set" && !isPrim then
-      seq (ty val) true
+      (tryEval (ty val)).success
     else
       false;
-  # Define a new nixty type.
+  # Define a new Nixty type.
   newType =
     {
+      # Name of the new type.
       name,
+      # The new type's definition/schema.
       def,
-      map ? self: self,
+      # Function that runs after the type table is built.
+      postType ? self: self,
+      # Function that runs after an instance of the type is built.
+      postInstance ? self: self,
     }:
-    let
-      assertSchema =
-        set:
-        assert typeOf set == "set";
-        all (
-          key:
-          let
-            val = set.${key};
-          in
-          if val ? __nixty_type then
-            true
-          else if typeOf val == "set" then
-            assertSchema val
-          else
-            abort "The field `${key}` isn't set to a valid type."
-        ) (attrNames set);
-    in
-    addErrorContext "While creating the nixty type `${name}`" (
-      deepSeq (assertSchema def) (map {
-        __nixty = name;
-        __nixty_type = null;
-        __nixty_typedef = def;
-        __functor =
-          self: val:
-
-          if typeOf val != "set" then
-            abort "nixty error: Tried to instantiate the type `${name}`, but didn't pass a set of fields"
-          else if val ? __nixty && val.__nixty == name then
-            val
-          else
+    addErrorContext "While creating the Nixty type `${name}`" (
+      let
+        assertSchema =
+          name: set:
+          assert typeOf set == "set";
+          all (
+            key:
             let
-              buildSet =
-                name: set: val:
-                mapAttrs (
-                  key: ty:
-                  addErrorContext "While type-checking the field `${key}` of `${name}`" (
-                    if ty ? __nixty_type then ty (val.${key} or null) else buildSet "${name}.${key}" ty val.${key}
-                  )
-                ) set;
+              val = set.${key};
             in
-            buildSet name def val;
-      })
+            if val ? __nixty_type then
+              true
+            else if typeOf val == "set" then
+              assertSchema "${name}.${key}" val
+            else
+              throw "The field `${name}.${key}` isn't set to a valid type."
+          ) (attrNames set);
+        validatedType = deepSeq (assertSchema name def) builtType;
+
+        builtType = postType {
+          __nixty = name;
+          __nixty_type = null;
+          __nixty_typedef = def;
+          __functor =
+            self: val:
+
+            if typeOf val != "set" then
+              throw "Nixty type error: Expected a set to be passed when instantiating the type `${name}`; instead got the type `${typeOf val}`"
+            else if val ? __nixty && val.__nixty == name then
+              val
+            else
+              let
+                validateSet =
+                  typeName: typeDefinition: val:
+                  mapAttrs (
+                    key: ty:
+                    addErrorContext "While type-checking the field `${key}` of `${typeName}`" (
+                      if ty ? __nixty_type then
+                        ty (val.${key} or null)
+                      else if val ? ${key} then
+                        validateSet "${typeName}.${key}" ty val.${key}
+                      else
+                        throw "Nixty type error: Missing the field `${key}` when trying to instantiate the type `${name}`"
+                    )
+                  ) typeDefinition;
+                validated = (validateSet name def val);
+                instance = validated // {
+                  __nixty = name;
+                  __nixty_meta = self;
+                  __nixty_strip = intersectAttrs def instance;
+                };
+              in
+              postInstance instance;
+        };
+      in
+      deepSeq validatedType builtType
     );
-  # Define a new nixty primitive.
+  # Define a new Nixty primitive.
   newPrimitive = name: check: {
     __nixty = name;
     __nixty_type = null;
@@ -125,30 +151,43 @@ rec {
     __nixty_typedef = null;
     __nixty_check = check;
     __functor =
-      self: val: if !(check val) then abort "nixty type error: ${self.__nixty_errctx val}" else val;
+      self: val:
+      if self.__nixty_check val then val else throw "Nixty type error: ${self.__nixty_errctx val}";
     __nixty_errctx = val: "Expected a `${name}` value, got a `${type val}` value";
   };
 
   primitives = {
     # Any value.
     any = newPrimitive "any" (val: true);
-    # A string.
-    str = newPrimitive "str" (val: typeOf val == "string");
+    # A type that can be coerced to a string - a string literal, or a set with
+    # `__toString`, or a set with `outPath`.
+    str = newPrimitive "str" (val: typeOf val == "string" || val ? __toString || val ? outPath);
+    # A string. This only accepts string literals.
+    strStrict = newPrimitive "strStrict" (val: typeOf val == "string");
     # A boolean.
     bool = newPrimitive "bool" (val: typeOf val == "bool");
     # A derivation.
-    derivation = newPrimitive "derivation" (val: val ? type && val.type == "derivation");
+    drv = newPrimitive "drv" (val: val ? type && val.type == "derivation");
     # An attribute set.
     set = newPrimitive "set" (val: typeOf val == "set");
     # An attribute set where every value in the set is a specific type.
     setOf =
       ty:
       assert ty ? __nixty_type;
-      newPrimitive "set-of-${ty.__nixty}" (
+      (newPrimitive "setOf-${ty.__nixty}" (
         val: typeOf val == "set" && all (key: isType val.${key} ty) (attrNames val)
-      );
-    # A path. This only accepts literal path values.
-    pathStrict = newPrimitive "pathStrict" (val: typeOf val == "path");
+      ))
+      // {
+        __functor =
+          self: val:
+          if typeOf val == "set" then
+            let
+              mapped = mapAttrs (key: val: ty val) val;
+            in
+            deepSeq mapped mapped
+          else
+            throw "Nixty type error: ${self.__nixty_errctx val}";
+      };
     # A type that can be coerced to a path - paths, strings, and derivations.
     path = newPrimitive "path" (
       val:
@@ -157,13 +196,26 @@ rec {
       in
       ty == "string" || ty == "path" || (val ? type && val.type == "derivation")
     );
+    # A path. This only accepts literal path values.
+    pathStrict = newPrimitive "pathStrict" (val: typeOf val == "path");
     # A list.
     list = newPrimitive "list" (val: typeOf val == "list");
     # A list where every value is a specific type.
     listOf =
       ty:
       assert ty ? __nixty_type;
-      newPrimitive "list-of-${ty.__nixty}" (val: typeOf val == "list" && all (val: isType val ty) val);
+      (newPrimitive "listOf-${ty.__nixty}" (val: typeOf val == "list" && all (val: isType val ty) val))
+      // {
+        __functor =
+          self: val:
+          if typeOf val == "list" then
+            let
+              mapped = map (val: ty val) val;
+            in
+            deepSeq mapped mapped
+          else
+            throw "Nixty type error: ${self.__nixty_errctx val}";
+      };
     # A type that can be coerced to a function - functions/lambdas and functor
     # sets.
     func = newPrimitive "func" (val: typeOf val == "lambda" || val ? __functor);
@@ -188,35 +240,69 @@ rec {
       ty:
       assert ty ? __nixty_type;
       let
-        primitive = newPrimitive "null-or-${ty.__nixty}" (val: val == null || (isType val ty));
+        primitive = newPrimitive "nullOr-${ty.__nixty}" (val: val == null || (isType val ty));
       in
       primitive // { __functor = self: val: if val == null then null else ty val; };
     # One of the values given in a specific list.
     oneOfVal =
       validValues:
-      (newPrimitive "one-of-val" (val: elem val validValues))
+      (newPrimitive "oneOfVal" (val: elem val validValues))
       // {
         __nixty_errctx = val: "Expected one of ${toJSON validValues}, got ${toJSON val}";
       };
     # Any value whose type is in the given list.
     oneOfTy =
       validTypes:
-      newPrimitive "one-of-type" (val: any (ty: isType val ty) validTypes)
+      let
+        len = length validTypes;
+      in
+      newPrimitive "oneOfTy" (val: any (ty: isType val ty) validTypes)
       // {
+        __functor =
+          self: val:
+          let
+            checkRecursive =
+              idx:
+              let
+                test = tryEval ((elemAt validTypes idx) val);
+              in
+              if test.success then
+                test.value
+              else if (idx + 1) < len then
+                checkRecursive (idx + 1)
+              else
+                throw "Nixty type error: ${self.__nixty_errctx val}";
+          in
+          checkRecursive 0;
         __nixty_errctx =
           val:
           "Expected one of the types [${
             concatStringsSep ", " (map (ty: "`${ty.__nixty}`") validTypes)
           }], got type `${type val}`";
       };
-    # A nixty type, falling back to a default value if the value isn't given.
+    # A Nixty type, falling back to a default value if the value isn't given.
     withDefault =
       default: ty:
       assert ty ? __nixty_type;
       assert isType default ty;
       let
-        primitive = (newPrimitive "${ty.__nixty}-default" (val: val == null || isType val ty));
+        primitive = (newPrimitive "${ty.__nixty}-withDefault" (val: val == null || isType val ty));
       in
       primitive // { __functor = self: val: if val == null then default else ty val; };
+    # Normally when defining a new type, Nixty checks every single field in the
+    # type definition and makes sure its value is a valid Nixty type. This
+    # function bypasses that check. When you use it, Nixty will not verify that
+    # the provided value is a valid Nixty type - you are responsible for
+    # verifying that.
+    #
+    # This can be useful for recursive types (e.g. Type A has a field of Type B
+    # which has a field of Type A) - normally these trigger an infinite
+    # recursion error, but `unsafeAssumeTy` can avoid that.
+    unsafeAssumeTy =
+      ty:
+      (newPrimitive "unsafeAssumedType" (val: isType val ty))
+      // {
+        __functor = self: val: ty val;
+      };
   };
 }

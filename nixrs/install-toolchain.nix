@@ -101,24 +101,24 @@
 # see options for installing the component elsewhere.
 
 {
-  currentSystemRust,
   pkgs,
   lib,
-  fetchurl,
+  nixty,
   hasAttr,
   listToAttrs,
   mapAttrs,
   getAttr,
-  download,
   attrValues,
   filter,
   elem,
-  nixty,
+  fetchurl,
+  download,
+  CURRENT-SYSTEM-RUST,
   ...
 }:
 
 let
-  argsTy =
+  args-ty =
     with nixty.prelude;
     newType {
       name = "install-toolchain-args";
@@ -133,7 +133,7 @@ let
         # If null, nixrs will install the latest version of the toolchain
         date = nullOr str;
         # The target to install the toolchain for
-        target = withDefault currentSystemRust str;
+        target = withDefault CURRENT-SYSTEM-RUST str;
         # The components profile to install (minimal, default, complete)
         # If null, no profile will be installed, and only the components in the
         # components arg will be installed
@@ -143,36 +143,38 @@ let
           "complete"
           "nixrs-default"
         ]);
-        # Components to install - these are installed in addition to any components
-        # that are installed from the specified profile (if there was one)
+        # Components to install - these are installed in addition to any
+        # components that are installed from the specified profile (if there
+        # was one)
         components = withDefault [ ] list;
-        # Additional components to install for foreign targets (i.e. not the host
-        # system's target). The format is `<target> = [ "component1" "component2" ]`.
+        # Additional components to install for foreign targets (i.e. not the
+        # host system's target). The format is
+        # `<target> = [ "component1" "component2" ]`.
         #
-        # For example, you could download the standard library for cross compilation
-        # to WASM like so:
+        # For example, you could download the standard library for cross
+        # compilation to WASM like so:
         # ```nix
-        # customTargetComponents = {
+        # custom-target-components = {
         #   wasm32-unknown-unknown = [ "std" ];
         # };
         # ```
-        customTargetComponents = withDefault { } set;
+        custom-target-components = withDefault { } set;
       };
     };
 in
 
-rawArgs:
+args-raw:
 
 let
   inherit (lib.trivial) importTOML;
   inherit (pkgs.stdenvNoCC) mkDerivation;
   inherit (pkgs) symlinkJoin;
 
-  args = argsTy rawArgs;
+  args = args-ty args-raw;
 
   # Additional toolchain profiles nixrs adds. They're meant to be more sensible
   # defaults for nixrs, which doesn't need some components like Cargo.
-  nixrsProfiles = {
+  nixrs-profiles = {
     nixrs-default = [
       "rustc"
       "rust-src"
@@ -188,24 +190,24 @@ let
       "https://static.rust-lang.org/dist/channel-rust-${args.channel}.toml"
     else
       "https://static.rust-lang.org/dist/${args.date}/channel-rust-${args.channel}.toml";
-  toolchainName = "rust-${args.channel}${
+  toolchain-name = "rust-${args.channel}${
     if args.date != null then "-${args.date}-" else ""
   }-toolchain";
-  rawCfg = (importTOML (fetchurl url));
-  cfg = rawCfg // {
-    profiles = rawCfg.profiles // nixrsProfiles;
+  raw-cfg = (importTOML (fetchurl url));
+  cfg = raw-cfg // {
+    profiles = raw-cfg.profiles // nixrs-profiles;
   };
 
-  componentExistsForHost =
+  component-exists-for-host =
     component:
     hasAttr args.target cfg.pkg.${component}.target || hasAttr "*" cfg.pkg.${component}.target;
   hostComponents =
     if args.profile == null then
       args.components
     else
-      args.components ++ (filter componentExistsForHost cfg.profiles.${args.profile});
+      args.components ++ (filter component-exists-for-host cfg.profiles.${args.profile});
   # { target-triple = ["component", "component"]; }
-  allComponents = args.customTargetComponents // {
+  all-components = args.custom-target-components // {
     ${args.target} = hostComponents;
   };
 
@@ -213,28 +215,28 @@ let
   # additional dependencies for that component (e.g. clippy depends on the
   # rustc component), then downloads the component's tar file and installs it
   # into an isolated derivation.
-  getComponent =
-    targetTriple: componentNameOrAlias:
+  get-component =
+    target-triple: component-alias:
     let
-      componentName =
-        if hasAttr componentNameOrAlias cfg.pkg then
-          toString componentNameOrAlias
-        else if hasAttr componentNameOrAlias cfg.renames then
-          cfg.renames.${componentNameOrAlias}.to
+      component-name =
+        if hasAttr component-alias cfg.pkg then
+          toString component-alias
+        else if hasAttr component-alias cfg.renames then
+          cfg.renames.${component-alias}.to
         else
-          abort "Couldn't find component `${componentNameOrAlias}`.";
-      pkg = getAttr componentName cfg.pkg;
+          abort "Couldn't find component `${component-alias}`.";
+      pkg = getAttr component-name cfg.pkg;
       component =
         if hasAttr args.target pkg.target then
           pkg.target.${args.target}
         else if hasAttr "*" pkg.target then
           pkg.target."*"
         else
-          abort "Couldn't install component ${componentNameOrAlias} for target ${args.target}";
+          abort "Couldn't install component ${component-alias} for target ${args.target}";
       deps =
         with pkgs;
         if
-          elem componentName [
+          elem component-name [
             "clippy-preview"
             "rustfmt-preview"
             "rustc-codegen-cranelift-preview"
@@ -242,51 +244,51 @@ let
             "rust-analyzer-preview"
           ]
         then
-          [ (getComponent targetTriple "rustc") ]
+          [ (get-component target-triple "rustc") ]
         else if
-          elem componentName [
+          elem component-name [
             "cargo"
             "rust-std"
           ]
         then
           [ libgcc ]
-        else if componentName == "rustc" then
+        else if component-name == "rustc" then
           [
             libgcc
             libz
           ]
-        else if componentName == "rustc-dev" then
+        else if component-name == "rustc-dev" then
           [
             libgcc
             libz
-            "${getComponent targetTriple "llvm-tools-preview"}/lib/rustlib/${targetTriple}"
+            "${get-component target-triple "llvm-tools-preview"}/lib/rustlib/${target-triple}"
           ]
-        else if componentName == "llvm-tools-preview" then
+        else if component-name == "llvm-tools-preview" then
           [
             libz
             libgcc
           ]
         else
           [ ];
-      tarFile =
+      tar-file =
         if component.available then
           download {
-            name = "${toolchainName}-${componentName}";
+            name = "${toolchain-name}-${component-name}";
             url = component.xz_url;
             hash = component.xz_hash;
           }
         else
-          abort "The component `${componentName}` isn't available for the target `${args.target}`.";
+          abort "The component `${component-name}` isn't available for the target `${args.target}`.";
     in
     mkDerivation {
-      name = "${toolchainName}-${componentName}-unpack";
+      name = "${toolchain-name}-${component-name}-unpack";
       system = builtins.currentSystem;
       dontUnpack = true;
       outputs = [
         "out"
       ];
       postBuild = ''
-        tar -xf ${tarFile} -C . --strip-components=1
+        tar -xf ${tar-file} -C . --strip-components=1
         bash ./install.sh --disable-ldconfig --disable-verify --destdir=$out --prefix=
       '';
 
@@ -295,10 +297,10 @@ let
 
   # Takes the derivations from all installed components and symlinks them
   # together to form a sysroot.
-  buildSysroot =
+  build-sysroot =
     target: components:
     symlinkJoin {
-      name = toolchainName;
+      name = toolchain-name;
       paths = components;
     };
 in
@@ -306,14 +308,14 @@ in
 assert cfg.manifest-version == "2";
 
 mapAttrs (
-  targetTriple: componentList:
+  target-triple: component-list:
   let
     components = listToAttrs (
       map (component: {
         name = component;
-        value = getComponent targetTriple component;
-      }) componentList
+        value = get-component target-triple component;
+      }) component-list
     );
   in
-  components // { SYSROOT = buildSysroot targetTriple (attrValues components); }
-) allComponents
+  components // { SYSROOT = build-sysroot target-triple (attrValues components); }
+) all-components

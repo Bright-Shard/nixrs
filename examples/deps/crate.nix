@@ -5,8 +5,6 @@
   edition = 2024;
 
   dependencies = {
-    some-lib = {
-      source = ./some-lib;
-    };
+    some-lib = ./some-lib;
   };
 }

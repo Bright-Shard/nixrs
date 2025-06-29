@@ -22,39 +22,57 @@
 
 Basically CLI improvements, supporting dependencies, workspaces, and more compilation options
 
+-[ ] Allow compiling code without copying its source code to the nix store
+	- Only for local/on-disk deps
+-[ ] Compile crate
+	-[x] Internal crate format
+		- This format is agnostic from both the nixrs Nix Module and Cargo.toml, allowing nixrs to compile crates in either format
+		-[x] Crate metadata:
+			-[x] Crate name
+			-[x] Crate version
+			-[x] Crate features
+				- For checking if other crates try to enable a feature that don't exist
+			-[x] Enabled crate features
+			-[x] MSRV
+		-[ ] Workspace info:
+			- Mostly for generating the rust-analyzer cfg
+			-[ ] If crate is a workspace member
+	-[x] Check if crate has build.nix, call that if so
+	-[x] Check if crate has crate.nix, if so:
+		-[x] Evaluate as Nix module
+		-[x] Convert to internal crate format
+	-[ ] Check if crate has Cargo.toml, if so:
+		-[ ] Convert Cargo.toml to nixrs internal crate format
+	-[ ] Quick rebuilds
+		-[ ] Allow reading crate source code w/o copying to Nix store
+		-[ ] Incremental compilation
 -[ ] Dependencies
-	- There will be multiple types of dependencies nixrs needs to handle.
 	-[ ] Rust dependencies
-		- Need to build dependency tree, then go through and make a flat list of dependencies with unified features and versions
-		-[ ] Need to allow downloading from common sources:
+		-[ ] Download crates from common sources:
 			-[ ] crates.io @ Rust version requirement
 			-[x] Allow arbitrary dependencies in the Nix store
-		-[x] Determine if dependency is based in Cargo or nixrs
-			-[ ] For nixrs dependencies, recursively add sub-dependencies to dependency tree
-				-[ ] Cyclical dependency detection: If current crate is already in the dependency tree, in one straight branch to the root of the tree, error
-		-[ ] Flatten dependency tree into dependency list
-			-[ ] Start at top of tree
-			-[ ] For each branch, descend to bottom of branch and:
-				-[ ] If crate is already in dependency list, and its version can be merged with the existing entry:
-					-[ ] Merge crate version
-					-[ ] Merge crate features
-				-[ ] Otherwise, add crate to dependency list
+			-[x] Local (on-disk) dependencies
+		-[x] Recursively compile crates without evaluating their derivations
+			- This is a temporary solution to dependencies
+			- Long-term, nixrs should switch to something like pubgrub to properly build a dependency tree, merge compatible versions, and merge feature flags
+				- https://nex3.medium.com/pubgrub-2fb6470504f
 	-[ ] Link dependencies
 		-[x] Need to allow linking to libraries in the Nix store
 		-[ ] Investiage why Cargo has link restrictions & see if nixrs needs them too (Cargo doesn't allow multiple crates to link to the same static library)
 			- https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key
+	-[ ] Foreign dependencies
+	-[ ] Binary/PATH dependencies
+		-[x] Add to PATH
+		-[ ] Make available to build scripts
+		-[ ] Make available to nix shell
+		-[ ] If the dep is a bin crate, build it first
 	-[x] Make sure build files for dependencies aren't gc'd
--[ ] Binary dependencies
-	-[ ] Integrate with direnv and shell.nix:
-		-[x] Make the Rust toolchain available to the nix shell
-		-[ ] Make binary dependencies available to the nix shell
-	-[ ] Make these dependencies available to build.rs/postbuild.rs
 -[ ] Compilation options
 	-[ ] Custom linkers (e.g. mold)
 	-[ ] Support codegen options (rustc -C help to see options)
 	-[ ] Minimal binary size options
 	-[ ] Investigate allowing/denying lints with -A, -W, -D
-	-[ ] Investigate emitting a different binary type with --emit
+	-[x] Investigate emitting a different binary type with --emit
 	-[ ] Investigate allowing direct custom arguments to rustc
 -[ ] Workspace presets: A way to specify crates and compilation features to build together
 	-[ ] Specify crates in a preset
@@ -66,7 +84,8 @@ Basically CLI improvements, supporting dependencies, workspaces, and more compil
 -[ ] rust-analyzer integration
 	- https://rust-analyzer.github.io/book/configuration.html
 	-[x] Generate basic rust-analyzer config
-	-[ ] Get compilation
+	-[ ] Generate crate list
+	-[ ] Show compiler warnings/errors
 	-[ ] Allow specifying a workspace preset for rust-analyzer to use
 	-[x] Check if rust-analyzer auto-reloads rust-project.json
 		- It does! :D

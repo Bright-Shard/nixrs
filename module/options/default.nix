@@ -1,30 +1,35 @@
 {
   lib,
-  VALID_RUST_EDITIONS,
-  optionTypes,
+  option-types,
   nixrs,
-  readDir,
-  workspaceRoot,
+  VALID-RUST-EDITIONS,
+  VALID-CRATE-TYPES,
   ...
 }:
 
 let
   inherit (lib) mkOption;
   inherit (lib.types)
-    nullOr
+    path
     str
     bool
     enum
+    submodule
+    nullOr
     attrsOf
+    listOf
+    oneOf
     ;
-  inherit (optionTypes)
-    semanticVersion
+  inherit (option-types)
+    semantic-version
     dependency
     ;
+
+  toolchain-settings = import ./toolchain.nix nixrs;
 in
 
 {
-  options = {
+  options = rec {
     name = mkOption {
       description = "The crate's name.";
       type = str;
@@ -36,64 +41,86 @@ in
     };
     version = mkOption {
       description = "The crate's version.";
-      type = semanticVersion;
+      type = semantic-version;
     };
-    crate-type = mkOption {
-      description = "If this crate is a binary (bin), library (lib), or procedural macro (proc-macro).";
-      type = enum [
-        "bin"
-        "lib"
-        "proc-macro"
-      ];
-      default =
-        if (readDir workspaceRoot) ? "src" && (readDir "${workspaceRoot}/src") ? "lib.rs" then
-          "lib"
-        else
-          "bin";
-    };
-
     edition = mkOption {
       description = "The Rust edition this crate uses.";
-      type = enum VALID_RUST_EDITIONS;
+      type = enum VALID-RUST-EDITIONS;
     };
-    rust-version = mkOption {
-      description = "The crate's MSRV (Minimum Supported Rust Version).";
-      type = nullOr semanticVersion;
-      default = null;
+    features = mkOption {
+      description = "Crate features for conditional compilation.";
+      type = attrsOf (listOf str);
+      default = {
+        default = [ ];
+      };
     };
 
     meta = import ./meta.nix nixrs;
 
-    license = mkOption { };
-    license-file = mkOption { };
-
-    build-dependencies = mkOption {
-      description = "Any programs or libraries that are only needed while compiling this crate.";
-      default = { };
-      type = attrsOf dependency;
-    };
-    dev-dependencies = mkOption {
-      description = "Any programs or libraries that are only needed while compiling, testing, or benchmarking this crate.";
-      default = { };
-      type = attrsOf dependency;
-    };
+    # Global dependencies - added for all outputs, unless overridden.
     dependencies = mkOption {
       description = "Any programs or libraries that this crate needs to run.";
-      default = { };
       type = attrsOf dependency;
+      default = { };
     };
 
-    compiler = import ./compiler.nix nixrs;
-
-    cargo-compatibility = mkOption {
-      description = "Whether or not to generate a Cargo.toml file, to make this project compatible with Cargo. Note that when Cargo compatibility is enabled, not all nixrs features will be available, because some of its features do not exist in Cargo.";
-      type = bool;
-      default = false;
+    # Global compilation settings - set for all outputs, unless overridden.
+    compilation = {
+      target-triple = mkOption {
+        description = "Compile this crate for a specific target triple, instead of the host target triple.";
+        type = nullOr str;
+        default = null;
+      };
     };
 
-    workspace = {
-      toolchain = import ./toolchain.nix nixrs;
-      rust-analyzer = import ./rustAnalyzer.nix nixrs;
+    outputs = mkOption {
+      description = ''
+        Outputs are individual crates within this package that nixrs can build. Each output has a name and can override default package settings, such as dependencies or compilation settings.
+
+        There are a few special outputs:
+        - `lib`: The default output used when this package is used as a dependency.
+        - `bin`: The default output used when this package is built as a program.
+        - `prebuild`: The output that's built and run as a prebuild script.
+        - `postbuild`: The output that's built and run as a postbuild script.
+
+        nixrs will automatically add outputs in the following scenarios:
+        - `lib`: Added automatically if your package has a `src/lib.rs` file.
+        - `bin`: Added automatically if your package has a `src/main.rs` file.
+        - `prebuild`: Added automatically if your package has a `prebuild.rs` file.
+        - `postbuild`: Added automatically if your package has a `postbuild.rs` file.
+
+        You can still configure any of those outputs here as normal.
+      '';
+      type = attrsOf (submodule {
+        options = {
+          source = path;
+          inherit dependencies;
+          compilation = compilation // {
+            crate-type = mkOption {
+              description = "The crate type rustc will build this output as. You may specify one or multiple crate types.";
+              type = oneOf [
+                (listOf VALID-CRATE-TYPES)
+                (enum VALID-CRATE-TYPES)
+              ];
+              default = "bin";
+            };
+          };
+        };
+      });
+      default = { };
+    };
+
+    # Local settings that only affect your developer environment. None of these
+    # settings are used when your crate is imported as a dependency.
+    dev-env = {
+      toolchain = toolchain-settings;
+      rust-analyzer = {
+        enable = mkOption {
+          description = "Whether or not to enable rust-analyzer support. When enabled, on every build, nixrs will generate a rust-project.json file so rust-analyzer can work correctly.";
+          type = bool;
+          default = true;
+        };
+      };
     };
   };
 }

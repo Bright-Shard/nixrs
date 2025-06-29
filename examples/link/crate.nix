@@ -5,7 +5,7 @@
   edition = 2024;
 
   dependencies = {
-    liblua = {
+    lua = {
       kind = "link";
       source = "${pkgs.lua54Packages.lua}/lib";
     };

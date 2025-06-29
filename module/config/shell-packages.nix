@@ -2,11 +2,11 @@
   package,
   toolchain,
   pkgs,
-  currentSystemRust,
+  CURRENT-SYSTEM-RUST,
   ...
 }:
 # TODO add binary dependencies
 [
   (pkgs.callPackage package { })
-  toolchain.${currentSystemRust}.SYSROOT
+  toolchain.${CURRENT-SYSTEM-RUST}.SYSROOT
 ]

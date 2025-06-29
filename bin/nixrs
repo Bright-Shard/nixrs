@@ -56,7 +56,7 @@ manageCratesioIndex() {
 
 findCrateRoot() {
 	while [ $crateRoot != "/" ]; do
-		if [ $(ls $crateRoot | grep "crate.nix") ]; then
+		if [ "$(ls $crateRoot | grep "crate.nix")" ]; then
 			break
 		fi
 		crateRoot=$(dirname $crateRoot)
@@ -75,7 +75,7 @@ buildCrate() {
 	# up-to-date.
 	#manageCratesioIndex
 
-	nix-build "$ROOT/misc/cli.nix" --arg crateRoot $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
+	nix-build "$ROOT/misc/cli.nix" --arg crate-root $crateRoot --arg registries "{ cratesio = $CRATES_IO_INDEX; }" -o $crateRoot/target --show-trace
 
 	if [ $? != 0 ]; then
 		echo "nixrs error: Crate failed to compile."

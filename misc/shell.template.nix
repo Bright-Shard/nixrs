@@ -3,7 +3,7 @@
 }:
 
 let
-  workspaceRoot = ./.;
+  crateRoot = ./.;
   module = pkgs.lib.evalModules {
     modules = [
       nixrs.module
@@ -21,7 +21,7 @@ let
         ref = "main";
       }
     }/nixrs" { }).withModule
-      workspaceRoot
+      crateRoot
       module;
 in
 

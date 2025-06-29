@@ -1,0 +1,11 @@
+[package]
+name = "multi-crate-version"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+boml-03.path = "boml-03"
+boml-1.path = "boml-1"
+
+[workspace]
+members = ["boml-03", "boml-1"]

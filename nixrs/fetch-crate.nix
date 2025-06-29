@@ -1,4 +1,6 @@
 # Downloads a crate from an online crate registry so nixrs can compile it.
+#
+# Currently incomplete.
 
 {
   registries,
@@ -18,24 +20,24 @@
 }:
 
 let
-  argsTy =
+  args-ty =
     with nixty.prelude;
     newType {
       name = "fetch-crate-args";
       def = {
         # The name of the crate.
         name = str;
-        # The registry to download the crate from.
-        registry = str;
         # The version of the crate to download.
-        version = types.crateVersion;
+        version = types.dependency-version;
+        # The registry to download the crate from.
+        registry = withDefault "cratesio" str;
       };
     };
 in
 
-argsRaw:
+args-raw:
 let
-  args = argsTy argsRaw;
+  args = args-ty args-raw;
 in
 addErrorContext "While downloading the crate `${args.name}`" (
   if !(hasAttr args.registry registries) then

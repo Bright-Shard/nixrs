@@ -91,12 +91,6 @@ import "${nixrs}/nixrs" {
 
 nixrs is largely inspired by Cargo, so nixrs projects are structured similarly to Cargo projects. The largest two differences are that nixrs uses `crate.nix` (instead of `Cargo.toml`) for configuration, and is written in Nix instead of TOML. If you aren't familiar with Nix, don't worry - 90% of what you need is Nix tables, which are similar to Python dictionaries or JSON.
 
-> For those of you familiar with Nix:
->
-> - nixrs uses a standard [Nix module](https://nix.dev/tutorials/module-system/index.html), so it's the same format used by NixOS' `configuration.nix` file.
-> - nixrs does not currently support flakes, since flakes are unstable. nixrs does its best to only use stable Nix features so that you don't need to set any additional options to use it.
-> - Currently, downloading a toolchain with nixrs involves an import from derivation. It's not a bad one (it downloads one TOML file and parses it), but it is there. This will be removed when dynamic derivations are stable.
-
 A barebones `crate.nix` looks like this:
 
 ```nix
@@ -128,14 +122,25 @@ There aren't many docs written for the nixrs API outside of the nixrs source cod
 
 # Current Limitations
 
+## Major Missing Features
+
 - (wip) nixrs doesn't support depending on Cargo crates
 - (wip) nixrs doesn't integrate well with rust-analyzer
 	- features specific to rust-analyzer work (e.g. docs on hover, jump to source)
 	- compiler features do not (e.g. most compilation warnings/errors)
-- nixrs doesn't support crate features
+- nixrs doesn't support crate feature flags
 - nixrs cannot download crates from crates.io
 - the nixrs CLI doesn't accept flags for running unit tests or building in release mode
 	- The current CLI is written in Bash and just doesn't work well; I'm working on my own CLI library for Rust and will rewrite the CLI once it's completed
-- nixrs doesn't have any form of workspaces
 - nixrs lacks a lot of compilation options that Cargo has
 - miri requires special sysroot settings and tries to manage dependencies on its own. As such I haven't yet figured out how to get it to run in a nixrs project.
+
+## Problematic Nix Code
+
+nixrs is written to work OOTB on stable Nix, so it has a few problems:
+
+- nixrs requires import from derivation for:
+	- Downloading a toolchain - it downloads the toolchain manifest, parses it, then creates a derivation to install the toolchain
+		- This could easily be replaced by a dynamic derivation
+	- Dependencies declared with a derivation in `crate.nix`; nixrs will import their crate manifest from the derivation
+- nixrs does not currently support flakes

@@ -1,35 +1,32 @@
-# Stores the minimum and maximum valid version for a crate dependency. Also
-# has a utility function for parsing version requirements:  https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#version-requirement-syntax
-
 {
   lib,
   match,
   elemAt,
   nixty,
-  nixrs,
+  types,
   ...
 }:
 
 with nixty.prelude;
 
 let
-  semver = import ./semanticVersion.nix nixrs;
+  inherit (types) semantic-version;
   toInt = lib.strings.toIntBase10;
 in
 
 newType {
-  name = "crateVersion";
+  name = "dependency-version";
   def = {
-    min = semver;
-    max = semver;
+    min = semantic-version;
+    max = semantic-version;
   };
-  map =
+  postType =
     self:
     self
     // rec {
       regex = "^([=<>\\^~]|<=|>=)?(0|[1-9][0-9]*|\\*)\\.?(0|[1-9][0-9]*|\\*)?\\.?(0|[1-9][0-9]*|\\*)?$";
 
-      fromString =
+      from-string =
         val:
 
         let
@@ -51,7 +48,7 @@ newType {
             major = toInt rawMajor;
             minor = if rawMinor == null then 0 else toInt rawMinor;
             patch = if rawPatch == null then 0 else toInt rawPatch;
-            specifiedVersion = semver {
+            specifiedVersion = semantic-version {
               inherit major;
               inherit minor;
               inherit patch;
@@ -63,7 +60,7 @@ newType {
                 # 0
                 self {
                   min = specifiedVersion;
-                  max = semver {
+                  max = semantic-version {
                     major = 1;
                     minor = 0;
                     patch = 0;
@@ -74,7 +71,7 @@ newType {
                   # 0.0
                   self {
                     min = specifiedVersion;
-                    max = semver {
+                    max = semantic-version {
                       major = 0;
                       minor = 1;
                       patch = 0;
@@ -85,7 +82,7 @@ newType {
                   # this is based off of the behaviour of 0 and 0.0
                   self {
                     min = specifiedVersion;
-                    max = semver {
+                    max = semantic-version {
                       major = 0;
                       minor = 0;
                       patch = 1;
@@ -95,7 +92,7 @@ newType {
                   # 0.0.x
                   self {
                     min = specifiedVersion;
-                    max = semver {
+                    max = semantic-version {
                       major = 0;
                       minor = 0;
                       patch = patch + 1;
@@ -105,7 +102,7 @@ newType {
                 # 0.x
                 self {
                   min = specifiedVersion;
-                  max = semver {
+                  max = semantic-version {
                     major = 0;
                     minor = minor + 1;
                     patch = 0;
@@ -115,7 +112,7 @@ newType {
               # x
               self {
                 min = specifiedVersion;
-                max = semver {
+                max = semantic-version {
                   major = major + 1;
                   minor = 0;
                   patch = 0;
