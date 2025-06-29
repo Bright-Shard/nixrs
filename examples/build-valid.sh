@@ -6,8 +6,8 @@
 
 set -e
 
-EXAMPLES_FOLDER=$(dirname $0)
-ROOT=$EXAMPLES_FOLDER/..
+EXAMPLES_FOLDER=$(realpath $(dirname $0))
+ROOT=$(realpath $EXAMPLES_FOLDER/..)
 for example in $(ls $EXAMPLES_FOLDER); do
 	if [ -d $EXAMPLES_FOLDER/$example ]; then
 		case "$example" in

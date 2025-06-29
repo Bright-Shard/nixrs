@@ -12,7 +12,6 @@
 # {
 #   __nixty: str, # name of the type this is an instance of
 #   __nixty_meta: set, # stores the type this instance was created from
-#   __nixty_strip: set, # returns the instance with all Nixty fields removed
 #   ... # all the appropriate fields for this type
 # }
 #
@@ -42,6 +41,7 @@ let
     attrNames
     intersectAttrs
     addErrorContext
+    seq
     deepSeq
     mapAttrs
     toJSON
@@ -71,9 +71,11 @@ rec {
     else if isPrim then
       (ty.__nixty_check val)
     else if typeOf val == "set" && !isPrim then
-      (tryEval (ty val)).success
+      (tryEval (deepSeq (ty val) (ty val))).success
     else
       false;
+  # Removes all the Nixty-specific fields from a type instance.
+  strip = val: intersectAttrs val.__nixty_meta.__nixty_typedef val;
 
   # Define a new Nixty type.
   newType =
@@ -92,7 +94,7 @@ rec {
         assertSchema =
           name: set:
           assert typeOf set == "set";
-          all (
+          seq (all (
             key:
             let
               val = set.${key};
@@ -103,8 +105,7 @@ rec {
               assertSchema "${name}.${key}" val
             else
               throw "The field `${name}.${key}` isn't set to a valid type."
-          ) (attrNames set);
-        validatedType = deepSeq (assertSchema name def) builtType;
+          ) (attrNames set)) true;
 
         builtType = postType {
           __nixty = name;
@@ -142,10 +143,10 @@ rec {
                   }
                 );
               in
-              deepSeq instance instance;
+              instance;
         };
       in
-      deepSeq validatedType builtType
+      seq (assertSchema name def) builtType
     );
 
   # Define a new Nixty primitive.
@@ -186,10 +187,7 @@ rec {
         __functor =
           self: val:
           if typeOf val == "set" then
-            let
-              mapped = mapAttrs (key: val: ty val) val;
-            in
-            deepSeq mapped mapped
+            mapAttrs (key: val: ty val) val
           else
             throw "Nixty type error: ${self.__nixty_errctx val}";
       };
@@ -214,10 +212,7 @@ rec {
         __functor =
           self: val:
           if typeOf val == "list" then
-            let
-              mapped = map (val: ty val) val;
-            in
-            deepSeq mapped mapped
+            map (val: ty val) val
           else
             throw "Nixty type error: ${self.__nixty_errctx val}";
       };

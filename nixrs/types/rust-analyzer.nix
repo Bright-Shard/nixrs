@@ -7,7 +7,7 @@
 
 with nixty.prelude;
 rec {
-  serialise = val: toJSON val.__nixty_strip;
+  serialise = val: toJSON (nixty.strip val);
   project-json = newType {
     name = "ra-project-json";
     def = {

@@ -154,8 +154,8 @@ let
                     }
                   }/lib${dep.crate.meta.name-rustc}.rlib";
                 }) output.crate-dependencies;
-                search-paths = map (val: val.__nixty_strip) output.search-paths;
-                native-libraries = map (val: val.__nixty_strip) output.link-dependencies;
+                search-paths = map (val: nixty.strip val) output.search-paths;
+                native-libraries = map (val: nixty.strip val) output.link-dependencies;
                 inherit emit;
                 inherit error-format;
                 inherit target;

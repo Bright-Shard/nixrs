@@ -132,7 +132,7 @@ assert (
   assert personInstance.__nixty == person.__nixty;
   assert personInstance.__nixty_meta == person;
   assert
-    attrNames personInstance.__nixty_strip == [
+    attrNames (nixty.strip personInstance) == [
       "age"
       "gender"
       "name"
@@ -140,7 +140,7 @@ assert (
 
   true
 );
-# Check that Nixty catches errors
+# Check that Nixty.isType catches errors
 # This performs two tests:
 # 1. Nixty catches errors as expected
 # 2. isType does not error, and only ever returns true/false
