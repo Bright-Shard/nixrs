@@ -6,17 +6,18 @@
 
 set -e
 
-ROOT=$(dirname $0)
-for example in $(ls $ROOT); do
-	if [ -d $ROOT/$example ]; then
+EXAMPLES_FOLDER=$(dirname $0)
+ROOT=$EXAMPLES_FOLDER/..
+for example in $(ls $EXAMPLES_FOLDER); do
+	if [ -d $EXAMPLES_FOLDER/$example ]; then
 		case "$example" in
 			"cratesio-dep" | "workspace")
 				echo "Skipping blacklisted example '$example'"
 			;;
 			*)
 				echo "Building example '$example'"
-				cd $ROOT/$example
-				nixrs b
+				cd $EXAMPLES_FOLDER/$example
+				$ROOT/bin/nixrs b
 				cd - >/dev/null
 			;;
 		esac

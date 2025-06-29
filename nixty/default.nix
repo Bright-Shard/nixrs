@@ -74,6 +74,7 @@ rec {
       (tryEval (ty val)).success
     else
       false;
+
   # Define a new Nixty type.
   newType =
     {
@@ -132,17 +133,21 @@ rec {
                     )
                   ) typeDefinition;
                 validated = (validateSet name def val);
-                instance = validated // {
-                  __nixty = name;
-                  __nixty_meta = self;
-                  __nixty_strip = intersectAttrs def instance;
-                };
+                instance = postInstance (
+                  validated
+                  // {
+                    __nixty = name;
+                    __nixty_meta = self;
+                    __nixty_strip = intersectAttrs def instance;
+                  }
+                );
               in
-              postInstance instance;
+              deepSeq instance instance;
         };
       in
       deepSeq validatedType builtType
     );
+
   # Define a new Nixty primitive.
   newPrimitive = name: check: {
     __nixty = name;

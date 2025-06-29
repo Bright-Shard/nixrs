@@ -124,7 +124,9 @@ assert (
 
   # Check Nixty type instance fields
   let
-    personInstance = person { };
+    personInstance = person {
+      name = "E";
+    };
   in
   assert personInstance.__nixty == "person";
   assert personInstance.__nixty == person.__nixty;

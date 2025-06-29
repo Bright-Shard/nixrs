@@ -8,7 +8,7 @@ Nixty aims to provide a simple API for type-checking in pure Nix. Types can be d
 >
 > In other words, Nixty isn't a part of nixrs. It just lives in this repo right now for convenience and is used by nixrs.
 
-## example
+## Example
 
 ```nix
 let
@@ -59,8 +59,8 @@ true
 ```
 
 
-## speed
+## Speed
 
-Because it's written in pure Nix, nixty will slow down evaluation time. Ideally, the Nix evaluator will eventually get built-in type checking written in C++.
+Because it's written in pure Nix, Nixty will slow down evaluation time. Ideally, the Nix evaluator will eventually get built-in type checking written in C++.
 
-The hundred-line test suite found in `test.nix` runs in .024s on my system (ran with `time nix repl --file test.nix --show-trace`). This is the exact same amount of time it takes to run `empty.nix` with the same command. So nixty will not add any noticeable overhead to your Nix program.
+The 250-line test suite found in `test.nix` takes between .020s and .024s to run on my system. Running `empty.nix` (an empty file) takes between .019s and .021s on the same system with the same command. So, Nixty's overhead shouldn't be noticeable.
