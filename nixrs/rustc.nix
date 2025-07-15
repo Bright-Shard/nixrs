@@ -1,127 +1,27 @@
 # Wraps around rustc to provide an explicit API to Nix for compiling a single
-# Rust crate. Returns a derivation to a single file (the compiled crate).
+# Rust crate. Returns a derivation to a folder with all compilation outputs
+# inside.
 
 {
   concatStringsSep,
   concatLists,
   map,
+  mapAttrs,
+  attrNames,
   currentSystem,
   addErrorContext,
+  typeOf,
+  toJSON,
   pkgs,
+  types,
   nixty,
-  VALID-RUST-EDITIONS,
-  VALID-CRATE-TYPES,
-  NATIVE-LIBRARY-TYPES,
-  SEARCH-PATH-TYPES,
   ...
 }:
-
-let
-  inherit (nixty) type;
-
-  args-ty =
-    with nixty.prelude;
-    newType {
-      name = "rustc-args";
-      def = {
-        # Path to crate's root (e.g. main.rs or lib.rs)
-        root = str;
-        # Name of crate to compile
-        crate-name = str;
-        # Rust edition to build with
-        edition = oneOfVal VALID-RUST-EDITIONS;
-        # Type of crate to compile (can specify one type or many types)
-        crate-type = oneOfTy [
-          (oneOfVal VALID-CRATE-TYPES)
-          (listOf (oneOfVal VALID-CRATE-TYPES))
-        ];
-        # External crates this crate uses
-        extern-crates = listOf (oneOfTy [
-          str
-          (newType {
-            name = "rustc-args-extern-path";
-            def = {
-              name = str;
-              path = nullOr (oneOfTy [
-                path
-                str
-              ]);
-            };
-          })
-        ]);
-        # Paths to add to rustc's search paths
-        search-paths = listOf (oneOfTy [
-          str
-          (newType {
-            name = "rustc-args-search-path";
-            def = {
-              kind = nullOr (oneOfVal SEARCH-PATH-TYPES);
-              path = str;
-            };
-          })
-        ]);
-        # Native libraries to link against
-        native-libraries = listOf (oneOfTy [
-          str
-          (newType {
-            name = "rustc-args-native-library";
-            def = {
-              kind = nullOr (oneOfVal NATIVE-LIBRARY-TYPES);
-              modifiers = nullOr (
-                listOf (oneOfVal [
-                  "bundle"
-                  "verbatim"
-                  "whole-archive"
-                  "as-needed"
-                ])
-              );
-              name = str;
-              rename = nullOr str;
-            };
-          })
-        ]);
-        # Output formats to emit
-        emit =
-          let
-            accepted = oneOfVal [
-              "asm"
-              "dep-info"
-              "link"
-              "llvm-bc"
-              "llvm-ir"
-              "metadata"
-              "mir"
-              "obj"
-            ];
-          in
-          nullOr (oneOfTy [
-            (listOf accepted)
-            accepted
-          ]);
-        # Error format printed by rustc
-        error-format = nullOr (oneOfVal [
-          "human"
-          "json"
-          "short"
-        ]);
-        # Target triple to compile for
-        target = nullOr str;
-        # Build a test harness instead of just the normal crate
-        build-test-harness = bool;
-        # Path to the current toolchain's sysroot
-        sysroot = str;
-        # Path to the linker to use
-        linker = str;
-        # Path to rustc, relative to the toolchain's sysroot
-        rustc = withDefault "bin/rustc" str;
-      };
-    };
-in
 
 raw-args:
 
 let
-  args = args-ty raw-args;
+  args = types.rustc-args.args raw-args;
   nullable-flag =
     arg: flag:
     if arg != null then
@@ -148,18 +48,18 @@ addErrorContext "While compiling ${args.crate-name}" (derivation {
       (toString args.edition)
       "--sysroot"
       args.sysroot
-      "-C"
-      "linker=${args.linker}"
       "--out-dir"
       (placeholder "out")
     ]
     ++ [
       "--crate-type"
-      (if type args.crate-type == "string" then args.crate-type else concatStringsSep "," args.crate-type)
+      (
+        if typeOf args.crate-type == "string" then args.crate-type else concatStringsSep "," args.crate-type
+      )
     ]
     ++ (
       let
-        ty = type args.emit;
+        ty = typeOf args.emit;
       in
       if ty == "string" then
         [
@@ -181,7 +81,7 @@ addErrorContext "While compiling ${args.crate-name}" (derivation {
       map (val: [
         "--extern"
         (
-          if type val == "string" then
+          if typeOf val == "string" then
             val
           else if val.path != null then
             "${val.name}=${val.path}"
@@ -194,7 +94,7 @@ addErrorContext "While compiling ${args.crate-name}" (derivation {
       map (val: [
         "-L"
         (
-          if type val == "string" then
+          if typeOf val == "string" then
             val
           else if val.kind != null then
             "${val.kind}=${val.path}"
@@ -207,7 +107,7 @@ addErrorContext "While compiling ${args.crate-name}" (derivation {
       map (val: [
         "-l"
         (
-          if type val == "string" then
+          if typeOf val == "string" then
             val
           else
             let
@@ -223,7 +123,45 @@ addErrorContext "While compiling ${args.crate-name}" (derivation {
             if val.rename != null then "${kind}${val.name}:${val.rename}" else "${kind}${val.name}"
         )
       ]) args.native-libraries
-    );
+    )
+
+    # Codegen Options
+    ++ concatLists (
+      map (
+        key:
+        let
+          val = args.codegen.${key};
+        in
+        if val == null then
+          [ ]
+        else if key == "unsafe-target-feature" then
+          [
+            "-C"
+            "target-feature=\"${
+              concatStringsSep "," (
+                mapAttrs (feature: enabled: if enabled then "+${feature}" else "-${feature}") val
+              )
+            }\""
+          ]
+        else if typeOf val == "string" then
+          [
+            "-C"
+            "${key}=${val}"
+          ]
+        else if typeOf val == "list" then
+          [
+            "-C"
+            "${key}=\"${concatStringsSep " " val}\""
+          ]
+        else
+          [
+            "-C"
+            "${key}=${toJSON val}"
+          ]
+      ) (attrNames (nixty.stripInstance args.codegen))
+    )
+
+    ++ args.custom-args;
 
   # Environment variables
   PATH = "${args.sysroot}/bin:${pkgs.coreutils}/bin";

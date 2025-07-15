@@ -249,4 +249,8 @@ assert (
   true
 );
 
+# Verify that Nixty's prelude doesn't override `null`
+with nixty.prelude;
+assert null == builtins.null;
+
 "tests passed :D"

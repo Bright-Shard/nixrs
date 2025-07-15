@@ -1,4 +1,5 @@
 {
+  nixty,
   types,
   fetch-crate,
   parse-crate,
@@ -12,12 +13,25 @@
   ...
 }:
 
-# TODO type-check `module`
-module:
+args-raw:
+
+let
+  args-ty =
+    with nixty.prelude;
+    newType {
+      name = "nixrs-parse-nixrs-module-args";
+      def = {
+        # TODO: Try to type-check as a Nix module
+        module = set;
+        profile = nullOr str;
+      };
+    };
+  args = args-ty args-raw;
+in
 
 let
   inherit (types) crate dependency-version;
-  inherit (module.CRATE-INFO) config crate-root;
+  inherit (args.module.CRATE-INFO) config crate-root;
 
   root-folder = readDir crate-root;
   src-folder =
@@ -50,10 +64,10 @@ let
           }
         else if typeOf dep == "path" then
           let
-            crate = parse-crate dep;
+            crate = parse-crate { crate-root = dep; };
           in
           {
-            inherit (acc) link-dependencies search-paths;
+            inherit (acc) native-libraries search-paths;
             crate-dependencies = acc.crate-dependencies ++ [
               {
                 inherit crate;
@@ -71,7 +85,7 @@ let
           let
             crate =
               if dep.source != null then
-                parse-crate dep.source
+                parse-crate { crate-root = dep.source; }
               else
                 fetch-crate {
                   name = dep-name;
@@ -80,7 +94,7 @@ let
                 };
           in
           {
-            inherit (acc) link-dependencies search-paths;
+            inherit (acc) native-libraries search-paths;
             crate-dependencies = acc.crate-dependencies ++ [
               {
                 inherit crate;
@@ -97,7 +111,7 @@ let
           {
             inherit (acc) crate-dependencies;
             # TODO allow specifying library kind
-            link-dependencies = acc.link-dependencies ++ [ { name = dep-name; } ];
+            native-libraries = acc.native-libraries ++ [ { name = dep-name; } ];
             search-paths = acc.search-paths ++ [
               {
                 # TODO set to framework for framework link deps
@@ -113,7 +127,7 @@ let
       )
       {
         crate-dependencies = [ ];
-        link-dependencies = [ ];
+        native-libraries = [ ];
         search-paths = [ ];
       }
       (attrNames config-deps);
@@ -129,17 +143,19 @@ let
       inherit (output) source;
       # TODO: will need to let the output override package dependencies
       crate-dependencies = package-deps.crate-dependencies ++ output-deps.crate-dependencies;
-      link-dependencies = package-deps.link-dependencies ++ output-deps.link-dependencies;
+      native-libraries = package-deps.native-libraries ++ output-deps.native-libraries;
       search-paths = package-deps.search-paths ++ output-deps.search-paths;
       edition = fallback output.edition config.edition;
-      crate-type = output.crate-type;
-      default-target = fallback output.target-triple config.compilation.target-triple;
+      inherit (output) crate-type;
     }
   ) config.outputs;
 in
 crate {
   meta = {
-    inherit (config) name features;
+    inherit (config) name;
+    features = {
+      default = [ ];
+    } // config.features;
     version = types.semantic-version.from-string config.version;
   };
   workspace-info = {
@@ -149,9 +165,8 @@ crate {
   outputs =
     let
       shared-opts = {
-        inherit (package-deps) crate-dependencies link-dependencies search-paths;
+        inherit (package-deps) crate-dependencies native-libraries search-paths;
         edition = config.edition;
-        default-target = config.compilation.target-triple;
       };
     in
     parsed-outputs

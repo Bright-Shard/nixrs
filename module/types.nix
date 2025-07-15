@@ -3,6 +3,7 @@
 {
   lib,
   types,
+  CRATE-TYPES,
   ...
 }:
 
@@ -11,6 +12,7 @@ let
   inherit (lib.types)
     nullOr
     listOf
+    attrsOf
     str
     bool
     oneOf
@@ -25,11 +27,33 @@ rec {
   semantic-version = strMatching types.semantic-version.regex;
   dependency-version = strMatching types.dependency-version.regex;
 
+  crate-output = submodule {
+    options = {
+      source = mkOption {
+        description = "The path to the output's root source file (such as main.rs or lib.rs).";
+        type = path;
+      };
+      crate-type = mkOption {
+        description = "The crate type rustc will build this output as. You may specify one or multiple crate types.";
+        type = oneOf [
+          (listOf CRATE-TYPES)
+          (enum CRATE-TYPES)
+        ];
+        default = "bin";
+      };
+      dependencies = mkOption {
+        description = "Any programs or libraries that this crate needs to run.";
+        type = attrsOf dependency;
+        default = { };
+      };
+    };
+  };
+
   dependency-config = submodule {
     options = {
       version = mkOption {
         description = "The dependency's version. Only necessary for crates downloaded from an online repository.";
-        type = nullOr dependency-version;
+        type = nullOr semantic-version;
       };
       crate-repo = mkOption {
         description = "The crate repository to download this crate from. Note that this is a crate repository (like crates.io), not a Git repository.";
@@ -42,7 +66,7 @@ rec {
         default = null;
       };
       features = mkOption {
-        description = "Features to enable for the dependency. Only supported for crate dependencies.";
+        description = "Feature flags to enable for the dependency. Only supported for crate dependencies.";
         type = listOf str;
         default = [ "default" ];
       };
@@ -71,7 +95,7 @@ rec {
   };
   dependency = oneOf [
     path
-    dependency-version
+    semantic-version
     dependency-config
   ];
 }

@@ -40,16 +40,18 @@ let
     # The Rust target triple for the current system.
     CURRENT-SYSTEM-RUST = nix-target-to-rust-target builtins.currentSystem;
     # All the Rust editions that have been published to date.
-    VALID-RUST-EDITIONS = [
+    RUST-EDITIONS = [
       2015
       2018
       2021
       2024
     ];
     # Same as above, as strings instead of integers.
-    VALID-RUST-EDITIONS-STR = map (edition: toString edition) VALID-RUST-EDITIONS;
+    RUST-EDITIONS-STR = map (edition: toString edition) RUST-EDITIONS;
     # The types of crates that rustc can compile.
-    VALID-CRATE-TYPES = [
+    #
+    # https://doc.rust-lang.org/rustc/command-line-arguments.html#--crate-type-a-list-of-types-of-crates-for-the-compiler-to-emit
+    CRATE-TYPES = [
       "bin"
       "lib"
       "rlib"
@@ -59,18 +61,61 @@ let
       "proc-macro"
     ];
     # The types of native libraries that rustc can link against.
+    #
+    # https://doc.rust-lang.org/rustc/command-line-arguments.html#-l-link-the-generated-crate-to-a-native-library
     NATIVE-LIBRARY-TYPES = [
       "static"
       "framework"
       "dylib"
     ];
     # The types of search paths rustc uses.
+    #
+    # https://doc.rust-lang.org/rustc/command-line-arguments.html#-l-add-a-directory-to-the-library-search-path
     SEARCH-PATH-TYPES = [
       "dependency"
       "crate"
       "native"
       "framework"
       "all"
+    ];
+    # Output formats rustc can emit.
+    #
+    # https://doc.rust-lang.org/rustc/command-line-arguments.html#--emit-specifies-the-types-of-output-files-to-generate
+    EMIT-OBJECT-TYPES = [
+      "asm"
+      "dep-info"
+      "link"
+      "llvm-bc"
+      "llvm-ir"
+      "metadata"
+      "mir"
+      "obj"
+    ];
+    # Linker flavours supported by rustc.
+    #
+    # https://doc.rust-lang.org/rustc/codegen-options/index.html#linker-flavor
+    LINKER-FLAVORS = [
+      "em"
+      "gcc"
+      "ld"
+      "msvc"
+      "wasm-ld"
+      "ld64.lld"
+      "ld.lld"
+      "lld-link"
+    ];
+    # Relocation models supported by rustc.
+    #
+    # https://doc.rust-lang.org/rustc/codegen-options/index.html#relocation-model
+    RELOCATION-MODELS = [
+      "static"
+      "pic"
+      "pie"
+      "dynamic-no-pic"
+      "ropi"
+      "rwpi"
+      "ropi-rwpi"
+      "default"
     ];
 
     #

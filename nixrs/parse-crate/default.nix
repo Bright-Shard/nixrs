@@ -5,7 +5,6 @@
   nixrs,
   types,
   readDir,
-  elem,
   addErrorContext,
   ...
 }:
@@ -28,7 +27,7 @@ rec {
       args-ty =
         with nixty.prelude;
         newType {
-          name = "nixrs-crate-args";
+          name = "nixrs-parseNixrsCrate-args";
           def = {
             # Root of the nixrs crate.
             crate-root = oneOfTy [
@@ -40,6 +39,8 @@ rec {
             manifest-path = withDefault "crate.nix" str;
             # Additional special args to pass to the Nix Module.
             special-args = withDefault { } set;
+            # Which profile to build with.
+            profile = nullOr str;
           };
         };
       args = args-ty args-raw;
@@ -59,28 +60,45 @@ rec {
         inherit module nixrs;
       };
     in
-    nixrs-module nixrs-with-module;
+    nixrs-module {
+      inherit (args) profile;
+      module = nixrs-with-module;
+    };
   # Parses a `Cargo.toml` file to nixrs' internal `crate` type.
-  cargo-crate = import ./cargo-crate.nix nixrs;
+  cargo-crate = abort "todo: Cargo crates";
 
+  # Takes a path to a custom, nixrs, or Cargo crate and parses it appropriately.
   __functor =
-    self: crate-root:
-    assert elem (nixty.type crate-root) [
-      "str"
-      "path"
-    ];
+    self: args-raw:
+    let
+      args-ty =
+        with nixty.prelude;
+        newType {
+          name = "nixrs-parseCrate-args";
+          def = {
+            # Path to the crate's root folder.
+            crate-root = oneOfTy [
+              path
+              str
+            ];
+            # Crate profile to build.
+            profile = nullOr str;
+          };
+        };
+      args = args-ty args-raw;
+    in
     let
       inherit (types) crate;
-      crate-dir = readDir crate-root;
+      crate-dir = readDir args.crate-root;
     in
     if crate-dir ? "custom-crate.nix" then
-      addErrorContext "While evaluating the custom crate definition at `${crate-root}/custom-crate.nix`..." (
-        crate (import "${crate-root}/custom-crate.nix" nixrs)
+      addErrorContext "While evaluating the custom crate definition at `${args.crate-root}/custom-crate.nix`..." (
+        crate (import "${args.crate-root}/custom-crate.nix" nixrs)
       )
     else if crate-dir ? "crate.nix" then
-      nixrs-crate { inherit crate-root; }
+      nixrs-crate { inherit (args) crate-root profile; }
     else if crate-dir ? "Cargo.toml" then
       cargo-crate crate-dir
     else
-      abort "crate2nixrs: Crate at `${crate-root}` doesn't have a `Cargo.toml` file nor a `crate.nix` file, cannot build.";
+      abort "crate2nixrs: Crate at `${args.crate-root}` doesn't have a `Cargo.toml` file nor a `crate.nix` file, cannot build.";
 }

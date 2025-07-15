@@ -2,13 +2,14 @@
 
 {
   crate-root, # An absolute path to the root of the nixrs crate we're compiling.
+  profile ? "debug", # The profile to compile the crate with.
   registries, # Crate registries that nixrs can download crates from.
   pkgs ? import <nixpkgs> { },
 }:
 let
   inherit (nixrs) fallback install-toolchain CURRENT-SYSTEM-RUST;
   nixrs = import ../nixrs { inherit registries pkgs; };
-  crate = nixrs.parse-crate crate-root;
+  crate = nixrs.parse-crate { inherit crate-root profile; };
   output = fallback crate.default-outputs.bin (
     fallback crate.default-outputs.lib (
       abort "Crate doesn't have any library or binary outputs, unsure how to proceed."

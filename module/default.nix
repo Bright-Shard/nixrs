@@ -24,7 +24,7 @@ let
         # Custom option types used by the nixrs Nix Module.
         option-types = import ./types.nix nixrs;
         # The actual Nix module. Can be imported as a submodule.
-        module = import ./options nixrs;
+        module = import ./options.nix nixrs;
         # Path to the toolchain installed by nixrs
         toolchain = nixrs.install-toolchain {
           inherit (module.config.workspace.toolchain)

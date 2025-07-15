@@ -130,9 +130,9 @@ There aren't many docs written for the nixrs API outside of the nixrs source cod
 	- compiler features do not (e.g. most compilation warnings/errors)
 - nixrs doesn't support crate feature flags
 - nixrs cannot download crates from crates.io
+- nixrs doesn't have version resolution
 - the nixrs CLI doesn't accept flags for running unit tests or building in release mode
 	- The current CLI is written in Bash and just doesn't work well; I'm working on my own CLI library for Rust and will rewrite the CLI once it's completed
-- nixrs lacks a lot of compilation options that Cargo has
 - miri requires special sysroot settings and tries to manage dependencies on its own. As such I haven't yet figured out how to get it to run in a nixrs project.
 
 ## Problematic Nix Code

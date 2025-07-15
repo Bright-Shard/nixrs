@@ -39,7 +39,7 @@ let
     any
     tryEval
     attrNames
-    intersectAttrs
+    removeAttrs
     addErrorContext
     seq
     deepSeq
@@ -51,7 +51,7 @@ in
 rec {
   # Everything you need to use Nixty.
   prelude = primitives // {
-    inherit isType newType;
+    inherit isType newType primitives;
   };
 
   # Simple function to get the Nixty type of a value, falling back to the
@@ -74,8 +74,33 @@ rec {
       (tryEval (deepSeq (ty val) (ty val))).success
     else
       false;
-  # Removes all the Nixty-specific fields from a type instance.
-  strip = val: intersectAttrs val.__nixty_meta.__nixty_typedef val;
+  # Removes all the Nixty-specific fields from a Nixty primitive, type, or type
+  # instance.
+  strip = val: stripInstance (stripPrimitive val);
+  # Remove fields specific to Nixty type instances from the given attribute set.
+  stripInstance =
+    val:
+    removeAttrs val [
+      "__nixty"
+      "__nixty_meta"
+    ];
+  # Remove fields specific to Nixty types from the given attribute set.
+  stripType =
+    val:
+    removeAttrs val [
+      "__nixty"
+      "__nixty_type"
+      "__nixty_typedef"
+      "__functor"
+    ];
+  # Remove fields specific to Nixty primitives from the given attribute set.
+  stripPrimitive =
+    val:
+    removeAttrs (stripType val) [
+      "__nixty_errctx"
+      "__nixty_check"
+      "__nixty_primitive"
+    ];
 
   # Define a new Nixty type.
   newType =
@@ -133,13 +158,12 @@ rec {
                         throw "Nixty type error: Missing the field `${key}` when trying to instantiate the type `${name}`"
                     )
                   ) typeDefinition;
-                validated = (validateSet name def val);
+                validated = validateSet name def val;
                 instance = postInstance (
                   validated
                   // {
                     __nixty = name;
                     __nixty_meta = self;
-                    __nixty_strip = intersectAttrs def instance;
                   }
                 );
               in
@@ -253,6 +277,7 @@ rec {
     # Any value whose type is in the given list.
     oneOfTy =
       validTypes:
+      assert all (ty: ty ? __nixty_type) validTypes;
       let
         len = length validTypes;
       in
